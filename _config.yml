@@ -1,1 +1,3 @@
 title: jeremyschroeter.github.io
+plugins:
+  - jekyll-katex

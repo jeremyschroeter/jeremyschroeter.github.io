@@ -9,6 +9,7 @@ GEM
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0)
     eventmachine (1.2.7)
+    execjs (2.9.1)
     ffi (1.16.3)
     forwardable-extended (2.6.0)
     google-protobuf (4.26.1)
@@ -42,6 +43,9 @@ GEM
       safe_yaml (~> 1.0)
       terminal-table (>= 1.8, < 4.0)
       webrick (~> 1.7)
+    jekyll-katex (1.0.0)
+      execjs (~> 2.7)
+      jekyll (>= 3.6, < 5.0)
     jekyll-sass-converter (3.0.0)
       sass-embedded (~> 1.54)
     jekyll-watch (2.2.1)
@@ -123,6 +127,7 @@ PLATFORMS
 
 DEPENDENCIES
   jekyll
+  jekyll-katex
 
 BUNDLED WITH
    2.5.7
