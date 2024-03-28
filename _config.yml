@@ -1,4 +1,5 @@
 url: https://jeremyschroeter.com/
+highlighter: rouge
 plugins:
   - jekyll-katex
   - jekyll-scholar
@@ -6,3 +7,7 @@ plugins:
   - jekyll-feed
 katex:
   js_path: "assets/js"
+  rendering_options:
+    # Default KaTeX rendering options. See https://github.com/Khan/KaTeX#rendering-options
+    throw_error: false      # throwOnError - set to false if you want rendering to output error as text rather than a build error
+    error_color: "#cc0000"  # errorColor

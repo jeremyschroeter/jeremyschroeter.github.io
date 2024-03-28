@@ -1,5 +1,6 @@
 ---
 layout: post
+subtitle: I love vectors
 ---
 
 {% katex display %}
