@@ -1,5 +1,8 @@
-title: jeremyschroeter.github.io
+url: https://jeremyschroeter.com/
 plugins:
   - jekyll-katex
+  - jekyll-scholar
+  - jekyll-sitemap
+  - jekyll-feed
 katex:
   js_path: "assets/js"
