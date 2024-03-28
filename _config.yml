@@ -1,7 +1,6 @@
 title: jeremyschroeter.github.io
 plugins:
   - jekyll-katex
-
 katex:
   js_path: "assets/js"  # Path used to search for katex.min.js
   rendering_options:

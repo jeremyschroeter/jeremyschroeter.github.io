@@ -1,6 +1,7 @@
 ---
 layout: post
 ---
+
 {% katex display %}
 \mathbf{x} = 
 \begin{bmatrix}
