@@ -1,0 +1,24 @@
+---
+layout: post
+title: Maximum Likelihood Estimation
+subtitle: Discussing maximum likelihood estimation as an excuse to test out LaTeX rendering.
+---
+
+{% katexmm %}
+In statistics, maximum likelihood estimation (MLE) is a fundamental technique used to estimate the parameters of a presumed probability distribution based on observed data. By relying on a few important assumptions about the data generating process, MLE allows us to derive parameter estimates that maximize the probability of observing the given data. Here, I go over the basics of MLE as the first part in a series of posts explaining the connection between MLE and least squares regression.
+To begin, let's start with a concrete example and then we'll try to generalize what we learn from it.
+<br><br>
+Imagine you are given a biased coin and are tasked with approximating the probability with which it lands heads or tails. How do you go about doing this? Firstly, since we know there are only two possible outcomes we can say that if $P(H) = \theta$ then $P(T) = 1 - \theta$. Additionally, we know that we have to observe the outcomes of some large number of flips before we can say much of anything, and we also know that these flips are independent of one another. Let's call the number of flips we observe $n$. Finally, if you've been exposed to basic probability theory you might remember that the probability of two independent events co-occuring is the product of their individual probabilities [A1](#appendix_one).
+$$ P(x)\perp P(y) \rightarrow P(x, y) = P(x)P(y)$$
+With this information we can write the probability of observing a particular sequence of $n$ coin flips which we denote as $\mathcal{D}$ as:
+$$ P(\mathcal{D} | \theta) = \theta^k(1 - \theta)^{n - k} $$
+where $k$ is the number of times we flip heads and therefore $n - k$ is the number of times we flip tails.
+<br><br>
+Now MLE comes in. The above equation *is* our model. It is how we 
+<br><br>
+We begin by observing a set of data points $$X_1, X_2, \dots, X_n$$
+We assume these data points are sampled **independently** from a **known class** of probability distributions $f(x, \theta^*)$.  Ultimately, what we want from MLE is an accurate approximation of $\theta^*$ which we will refer to as $\hat{\theta}$. Crucial to getting there will be the two highlighted assumptions: **(1)** that our data points are independent of one another, and **(2)** the form of the presumed distribution is a good model of those data points.\
+<br><br>
+<a name="appendix_one"></a>A1.<br>
+If this seems unintuitive to you, imagine you have two unweighted $6$-sided dice and want to know the probability of rolling $6$ twice. If you were to roll a $1$ with the first die then there would still be $6$ possibilities of outcomes for the second die. This is actually true no matter what number we roll first and so for each outcome of the first roll we have $6$ possible outcomes for the second. Thus our total number of possibilities is $6^2 = 36$ and so the probability of any outcome is $\frac{1}{36}$. In fact, if we had $3$ dice then we would have $6^3$ possibilities or if we added a coin flip we would have $2 \cdot 6^2$ possibilities because for each of the $36$ previous outcomes we could flip either heads or tails. All of this is a function of the events being independent from one another.
+{% endkatexmm %}
