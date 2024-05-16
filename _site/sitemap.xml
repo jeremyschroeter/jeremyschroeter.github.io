@@ -2,7 +2,17 @@
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
 <loc>http://localhost:4000/2024/03/28/mle_intro.html</loc>
-<lastmod>2024-03-28T00:00:00-07:00</lastmod>
+<lastmod>2024-03-28T00:00:00-05:00</lastmod>
+</url>
+<url>
+<loc>http://localhost:4000/2024/04/15/kmeans_gmm.html</loc>
+<lastmod>2024-04-15T00:00:00-05:00</lastmod>
+</url>
+<url>
+<loc>http://localhost:4000/wips/2024-04-15-spike_sorting.html</loc>
+</url>
+<url>
+<loc>http://localhost:4000/wips/2024-05-15-mle_ls.html</loc>
 </url>
 <url>
 <loc>http://localhost:4000/about.html</loc>
@@ -12,5 +22,9 @@
 </url>
 <url>
 <loc>http://localhost:4000/</loc>
+</url>
+<url>
+<loc>http://localhost:4000/assets/latex/graphical_models.pdf</loc>
+<lastmod>2024-05-05T02:30:58-05:00</lastmod>
 </url>
 </urlset>
