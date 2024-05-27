@@ -514,20 +514,27 @@
   margin-bottom: 16px;
 }
 
-.markdown-body table {
-  display: block;
+
+table {
+  display: table;
   width: 100%;
   overflow: auto;
+  border-collapse: collapse;
+  border-radius:6px;
 }
 
 .markdown-body table th {
   font-weight: bold;
 }
 
-.markdown-body table th,
+/* .markdown-body table th,
 .markdown-body table td {
   padding: 6px 13px;
-  border: 1px solid #ddd;
+  border: 1px solid black;
+} */
+table :is(td, th) {
+  border-bottom: 1px solid #ddd;
+  padding: 0.3em;
 }
 
 .markdown-body table tr {
