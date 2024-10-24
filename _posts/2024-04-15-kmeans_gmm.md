@@ -30,36 +30,36 @@ $$
     \argmin_{r_{n, k}, \boldsymbol{\mu}_{k}}\sum_{n = 1}^N\sum_{k = 1}^Kz_{n, k}\Vert\mathbf{x}_n - \boldsymbol{\mu}_k\Vert^2_2
 $$
 
-### Finding $z_{n, k}$
-Intuitively, the value for $z_{n, k}$ that minimizes $J$ is simply the one which assigns its associated data point to the closest cluster center. More formally
+### Finding $z_{n, j}$
+Intuitively, the value for $z_{n, j}$ that minimizes $J$ is simply the one which assigns its associated data point to the closest cluster center. More formally
 $$
-    z_{n, k} =
+    z_{n, j} =
     \begin{cases}
-        1 & \text{if } k = \argmin_j \Vert \mathbf{x}_n - \boldsymbol{\mu}_j \Vert^2_2 \\
+        1 & \text{if } j = \argmin_k \Vert \mathbf{x}_n - \boldsymbol{\mu}_k \Vert^2_2 \\
         0 & \text{otherwise}
     \end{cases}
 $$
-### Finding $\boldsymbol{\mu}_k$
-To find the values for $\boldsymbol{\mu}_k$ that minimize $J$ we'll start by taking its derivative with respect to $\boldsymbol{\mu}_k$
+### Finding $\boldsymbol{\mu}_j$
+To find the center for the $j^{th}$ cluster we can find the value for $\boldsymbol{\mu}_j$ which minimizes $J$. We'll start by taking its derivative with respect to $\boldsymbol{\mu}_j$
 $$
 \begin{aligned}
-\frac{\partial J}{\partial \boldsymbol{\mu}_k} &= \frac{\partial}{\partial\boldsymbol{\mu}_k}\sum_{n = 1}^N\sum_{k = 1}^Kz_{n, k}\Vert\mathbf{x}_n - \boldsymbol{\mu}_k\Vert^2_2\\
-&= \frac{\partial}{\partial\boldsymbol{\mu}_k}\sum_{n=1}^N z_{n, k}\Vert\mathbf{x}_n - \boldsymbol{\mu}_k\Vert^2_2\\
-&= \frac{\partial}{\partial\boldsymbol{\mu}_k}\sum_{n=1}^N z_{n, k}(\mathbf{x}_n - \boldsymbol{\mu}_k)^\top(\mathbf{x}_n - \boldsymbol{\mu}_k)\\
-&= -2\sum_{n=1}^N z_{n, k}(\mathbf{x}_n - \boldsymbol{\mu}_k)
+\frac{\partial J}{\partial \boldsymbol{\mu}_j} &= \frac{\partial}{\partial\boldsymbol{\mu}_j}\sum_{n = 1}^N\sum_{k = 1}^Kz_{n, k}\Vert\mathbf{x}_n - \boldsymbol{\mu}_k\Vert^2_2\\
+&= \frac{\partial}{\partial\boldsymbol{\mu}_j}\sum_{n=1}^N z_{n, j}\Vert\mathbf{x}_n - \boldsymbol{\mu}_j\Vert^2_2\\
+&= \frac{\partial}{\partial\boldsymbol{\mu}_j}\sum_{n=1}^N z_{n, j}(\mathbf{x}_n - \boldsymbol{\mu}_j)^\top(\mathbf{x}_n - \boldsymbol{\mu}_k)\\
+&= -2\sum_{n=1}^N z_{n, j}(\mathbf{x}_n - \boldsymbol{\mu}_j)
 \end{aligned}
 $$
-Now we can set the derivative equal to $0$ and solve for $\boldsymbol{\mu}_k$
+Now we can set the derivative equal to $0$ and solve for $\boldsymbol{\mu}_j$
 $$
 \begin{aligned}
-    0 &= -2\sum_{n=1}^N z_{n, k}(\mathbf{x}_n - \boldsymbol{\mu}_k) \\
-    &= \sum_{n=1}^N z_{n, k}\mathbf{x}_n - z_{n, k}\boldsymbol{\mu}_k \\
-    \sum_{n=1}^N z_{n, k}\boldsymbol{\mu}_k &= \sum_{n=1}^N z_{n, k}\mathbf{x}_n \\
-    \boldsymbol{\mu}_k \sum_{n=1}^N z_{n, k} &= \sum_{n=1}^N z_{n, k}\mathbf{x}_n \\
-    \boldsymbol{\mu}_k &= \frac{\sum_{n=1}^N z_{n, k}\mathbf{x}_n}{\sum_{n=1}^N z_{n, k}}
+    0 &= -2\sum_{n=1}^N z_{n, j}(\mathbf{x}_n - \boldsymbol{\mu}_j) \\
+    &= \sum_{n=1}^N z_{n, j}\mathbf{x}_n - z_{n, j}\boldsymbol{\mu}_j \\
+    \sum_{n=1}^N z_{n, j}\boldsymbol{\mu}_j &= \sum_{n=1}^N z_{n, j}\mathbf{x}_n \\
+    \boldsymbol{\mu}_j \sum_{n=1}^N z_{n, j} &= \sum_{n=1}^N z_{n, j}\mathbf{x}_n \\
+    \boldsymbol{\mu}_j &= \frac{\sum_{n=1}^N z_{n, j}\mathbf{x}_n}{\sum_{n=1}^N z_{n, j}}
 \end{aligned}
 $$
-The denominator in the above equation is the number of data points assigned to the $k^{th}$ cluster, and so $\boldsymbol{\mu}_k$ is simply the average of its assigned points.
+The denominator in the above equation is the number of data points assigned to the $j^{th}$ cluster, and so $\boldsymbol{\mu}_j$ is simply the average of its assigned points.
 <br><br>
 Now notice that the equations for our two parameters each contains the other parameter as a variable. This motivates an iterative, algorithmic solution in which we optimize one parameter while fixing the other, and then optimize the second parameter holding the first one fixed. Our procedure will go like this:
 <br><br>
@@ -128,7 +128,7 @@ To fit this model to our data we will rely on [maximum likelihood estimation](ht
 $$
 p(\{\mathbf{x}\}\mid \bold{\Theta}) = \prod_{n=1}^N p(\mathbf{x}_n)
 $$
-Because of how we formulated our latent variables we can rewrite $p(\mathbf{x}_n)$ as a marginal of the joint distribution between $z$ and $\mathbf{x}$.
+We can use the sum and product rule to decompose our likelihood into the marginal distribution over $z$ and the condition distribution of $\mathbf{x}$ given $z$. This is useful because we already wrote down the forms of these above.
 $$
 \begin{aligned}
     \prod_{n=1}^N p(\mathbf{x}_n) &= \prod_{n=1}^N \sum_{k=1}^K p(\mathbf{x}_n, z=k) \\
@@ -141,57 +141,57 @@ $$
     \mathcal{L} = \log p(\{\mathbf{x}\}\mid \bold{\Theta}) = \sum_{n=1}^N \log \left[ \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n\mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\right]
 $$
 The MLE procedure now tells us to find the values for $\{\pi_k\}, \{\boldsymbol{\mu}_k\}$ and $\{\bold{\Sigma}_k\}$ that maximize $\mathcal{L}$. First let's find the maximum likelihood estimate for $\boldsymbol{\mu}_k$.
-### Finding $\boldsymbol{\mu}_k$
-We'll start by taking the derivative of $\mathcal{L}$ with respect to $\boldsymbol{\mu}_k$
+### Finding $\boldsymbol{\mu}_j$
+We'll start by taking the derivative of $\mathcal{L}$ with respect to $\boldsymbol{\mu}_j$
 $$
     \begin{aligned}
-        \frac{\partial\mathcal{L}}{\partial\boldsymbol{\mu}_k} &= \frac{\partial}{\partial\boldsymbol{\mu}_k}\sum_{n=1}^N \log \left[ \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n\mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\right]\\
-        &=\sum_{n=1}^N \frac{\partial}{\partial\boldsymbol{\mu}_k} \log \left[ \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n\mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\right]
+        \frac{\partial\mathcal{L}}{\partial\boldsymbol{\mu}_j} &= \frac{\partial}{\partial\boldsymbol{\mu}_j}\sum_{n=1}^N \log \left[ \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n\mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\right]\\
+        &=\sum_{n=1}^N \frac{\partial}{\partial\boldsymbol{\mu}_j} \log \left[ \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n\mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\right]
     \end{aligned}
 $$
 Here we can apply the [chain rule](https://en.wikipedia.org/wiki/Chain_rule?oldformat=true) [A2](#appendix_two)
 $$
     \begin{aligned}
-        \frac{\partial\mathcal{L}}{\partial\boldsymbol{\mu}_k} &= \sum_{n=1}^N \frac{\frac{\partial}{\partial\boldsymbol{\mu}_k} \Bigl(\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\Bigr)}
+        \frac{\partial\mathcal{L}}{\partial\boldsymbol{\mu}_j} &= \sum_{n=1}^N \frac{\frac{\partial}{\partial\boldsymbol{\mu}_j} \Bigl(\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\Bigr)}
         {\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)} \\
-        &=\sum_{n=1}^N\frac{\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)\cdot\bold{\Sigma}_k^{-1}(\mathbf{x}_n - \boldsymbol{\mu}_k)}
-        {\sum_{j=1}^K\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)} 
+        &=\sum_{n=1}^N\frac{\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)\cdot\bold{\Sigma}_j^{-1}(\mathbf{x}_n - \boldsymbol{\mu}_j)}
+        {\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)} 
     \end{aligned}
 $$
-Refer to [A3](#appendix_three) for that last step.
+That last step is just another application of the chain rule, as well as equation 86 from the [matrix cookbook](https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf).
 <br><br>
-Now to clean things up a bit let's define a new parameter $\gamma_{n, k}$ which we will define as
+Now to clean things up a bit let's define a new parameter $\gamma_{n, j}$ which we will define as
 $$
-    \gamma_{n, k} = \frac{\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)}{\sum_{j=1}^K\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)} 
+    \gamma_{n, j} = \frac{\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)}{\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)} 
 $$
 This quantity will appear a lot going forward and abstracting it this way will help us notationally, however this term also has a rich meaning: it is the conditional probability of $z$ given $\mathbf{x}$. To see this we can use [Bayes Rule](https://en.wikipedia.org/wiki/Bayes'_theorem?oldformat=true)
 $$
     \begin{aligned}
-        p(z_n = k \mid \mathbf{x}_n) &= \frac{p(z_n = k)p(\mathbf{x}_n \mid z_n=k)}{\sum_{j=1}^K p(z_n = j)p(\mathbf{x}_n \mid z_n = j)}\\
-        &=\frac{\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)}{\sum_{j=1}^K\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)} \\
-        &=\gamma_{n, k}
+        p(z_n = j \mid \mathbf{x}_n) &= \frac{p(z_n = j)p(\mathbf{x}_n \mid z_n=j)}{\sum_{k=1}^K p(z_n = k)p(\mathbf{x}_n \mid z_n = k)}\\
+        &=\frac{\pi_j\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_j, \bold{\Sigma}_j)}{\sum_{k=1}^K\pi_k\cdot\mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k)} \\
+        &=\gamma_{n, j}
     \end{aligned}
 $$
 This understanding allows us to view $\pi_k$ as the prior probability that $z_n = k$ before observing $\mathbf{x}_n$, and $\gamma_{n, k}$ as the posterior probability that $z_n = k$ *after* we observe $\mathbf{x}_n$. $\gamma_{n, k}$ is also often referred to as the *responsibility* because it can be viewed as the ability of the $k^{th}$ cluster to explain the value of $\mathbf{x}_n$. Also, notice that $\sum_{k=1}^K \gamma_{n, k} = 1$. This should make sense because in our model each data point *has* to come from *a* cluster.
 <br><br>
-Now we can plug $\gamma_{n, k}$ into our derivative and set it equal to $0$ to solve for $\boldsymbol{\mu}_k$
+Now we can plug $\gamma_{n, j}$ into our derivative and set it equal to $0$ to solve for $\boldsymbol{\mu}_j$
 $$
     \begin{aligned}
-        0 &= \sum_{n=1}^N \gamma_{n, k} \bold{\Sigma}_k^{-1}(\mathbf{x}_n - \boldsymbol{\mu}_k)\\
-        &=\bold{\Sigma}_k^{-1} \sum_{n=1}^N \gamma_{n, k}\mathbf{x}_n - \gamma_{n, k}\boldsymbol{\mu}_k\\
-        \sum_{n=1}^N \gamma_{n, k}\boldsymbol{\mu}_k &= \sum_{n=1}^N \gamma_{n, k}\mathbf{x}_n\\
-        \boldsymbol{\mu}_k &= \frac{\sum_{n=1}^N \gamma_{n, k}\mathbf{x}_n}{\sum_{n=1}^N \gamma_{n, k}}\\
-        \boldsymbol{\mu}_k &= \frac{\sum_{n=1}^N \gamma_{n, k}\mathbf{x}_n}{N_k}\\
+        0 &= \sum_{n=1}^N \gamma_{n, j} \bold{\Sigma}_j^{-1}(\mathbf{x}_n - \boldsymbol{\mu}_j)\\
+        &=\bold{\Sigma}_j^{-1} \sum_{n=1}^N \gamma_{n, j}\mathbf{x}_n - \gamma_{n, j}\boldsymbol{\mu}_j\\
+        \sum_{n=1}^N \gamma_{n, j}\boldsymbol{\mu}_j &= \sum_{n=1}^N \gamma_{n, j}\mathbf{x}_n\\
+        \boldsymbol{\mu}_j &= \frac{\sum_{n=1}^N \gamma_{n, j}\mathbf{x}_n}{\sum_{n=1}^N \gamma_{n, j}}\\
+        \boldsymbol{\mu}_j &= \frac{\sum_{n=1}^N \gamma_{n, j}\mathbf{x}_n}{N_j}\\
     \end{aligned}
 $$
-So after all of that, we have this nice result that the center of cluster $k$ is a weighted average of the data where the weights are the responsibilities or the ability of that cluster to explain the data. The denominator is the sum of the responsibility of the $k^{th}$ cluster across every data point, and so you can think about it almost like the effective number of data points assigned to cluster $k$.
+So after all of that, we have this nice result that the center of cluster $k$ is a weighted average of the data where the weights are the responsibilities or the ability of that cluster to explain the data. The denominator $N_j$ is the sum of the responsibilities of the $j^{th}$ cluster across every data point, and so you can think about it almost like the effective number of data points assigned to cluster $j$.
 <br><br>
-I will leave derivations of the maximum likelihood estimates for $\pi_k$ and $\bold{\Sigma}_k$ in the appendix, but they too have nice interpretations.
+I will leave derivations of the maximum likelihood estimates for $\pi_j$ and $\bold{\Sigma}_j$ in the appendix, but they too have nice interpretations.
 $$
-\bold{\Sigma}_k = \frac{1}{N_k}\sum_{n=1}^N\gamma_{n, k}(\mathbf{x}_n - \boldsymbol{\mu}_k)(\mathbf{x}_n - \boldsymbol{\mu}_k)^\top\qquad
-\pi_k = \frac{N_k}{N}
+\bold{\Sigma}_j = \frac{1}{N_j}\sum_{n=1}^N\gamma_{n, j}(\mathbf{x}_n - \boldsymbol{\mu}_j)(\mathbf{x}_n - \boldsymbol{\mu}_j)^\top\qquad
+\pi_j = \frac{N_j}{N}
 $$
-Like $\boldsymbol{\mu}_k$, our covariance estimate is a weighted empirical covariance of the data where the weights are the responsibilities of the $k^{th}$ cluster, whilst $\pi_k$ is the effective fraction of the data assigned to cluster $k$.
+Like $\boldsymbol{\mu}_j$, our covariance estimate is a weighted empirical covariance of the data where the weights are the responsibilities of the $j^{th}$ cluster, whilst $\pi_j$ is the effective fraction of the data assigned to cluster $j$.
 <br><br>
 Notice that, as was the case in $K$-means, our values for $\gamma_{n, k}$ are dependent on our parameters, whilst our parameters are themselves dependent on $\gamma_{n, k}$. Like with $K$-means, this motivates an iterative approach in which we alternate between computing the responsibilities and optimizing the parameters. The procedure will go like this:
 <br><br>
@@ -270,17 +270,20 @@ def fit(X, K=2):
 
         old_mu, old_assignments, old_j = new_mu, new_assignments, new_j
     
-    return mu_updates, assignment_updates, j_scores
+    return mu_updates, assignment_updates,a j_scores
 ```
 {% katexmm %}
 <a name="appendix_two"></a>**A2**<br>
-Chain rule application in GMM derivation
+Chain rule application in GMM derivation.
 $$
     \frac{d}{dx}\log(g(x)) = \frac{g^\prime(x)}{g(x)}
 $$
+This sometimes gets called the "log-derivative trick", which isn't really a trick, but can be cleverly used to help compute difficult expectations. Maybe I will write a post about it one day.
 <br><br>
 <a name="appendix_three"></a>**A3**<br>
-Derivative of a multivariate normal distribution with respect to $\boldsymbol{\mu}$
+MLE for covariance matrices and mixture weights.
+$$
+\frac{\partial \mathcal{L}}{\partial \bold{\Sigma}_j} = \frac{\partial}{\partial \bold{\Sigma}_j}\sum_{n=1}^N \log \biggl[ \biggl( \sum_{k=1}^K \pi_k \cdot \mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \bold{\Sigma}_k) \biggr) \biggr]$$
 <br><br>
 <a name="appendix_four"></a>**A4**<br>
 GMM implementation

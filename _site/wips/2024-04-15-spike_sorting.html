@@ -1,33 +1,38 @@
-<!doctype html>
 <html>
-  <head>
+<head>
     <title>Building a Spike Sorter</title>
     <meta charset="UTF-8">
     <meta content='width=device-width, initial-scale=1' name='viewport'/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
-    <link rel="stylesheet" href="/assets/css/blog.css">
-    <link rel="stylesheet" href="/assets/css/markdown.css">
-    <link rel="stylesheet" href="/assets/css/trac.css">
-  </head>
-</html>
+    <link href='/assets//css/blog.css' rel='stylesheet'/>
+    <link href='/assets/css/trac.css' rel='stylesheet'/>
+    <link href='/assets/css/markdown.css' rel='stylesheet'/>
 
+</head>
 <body>
-  <div class='content'>
-      <div class="nav">
+<div class='content'>
+    <div class="nav">
   <ul class='wrap'>
     <li><a href='/'>Home</a></li>
     <li><a href='/blog.html'>Posts</a></li>
     <li><a href='/about.html'>About</a></li>
   </ul>
 </div>
-      <div class='front-matter'>
-          <div class='wrap'>
-              <h1>Building a Spike Sorter</h1>
-              <h4>Spike sorting is an unsupervised learning problem that is foundational to analyzing electrophysiological data. Here I give an introduce to the topic and implement a simple spike sorting algorithm in Python.</h4>
-          </div>
-      </div>
-      <div class='wrap article' style="font-size: 16px;">
-          
+    <div class='front-matter'>
+        <div class='wrap'>
+            <h1>Building a Spike Sorter</h1>
+            <h4>Spike sorting is an unsupervised learning problem that is foundational to analyzing electrophysiological data. Here I give an introduce to the topic and implement a simple spike sorting algorithm in Python.</h4>
+            <div class='bylines'>
+                <div class='byline'>
+                    <h3>Published</h3>
+                    <p></p>
+                </div>
+            </div>
+            <div class='clear'></div>
+        </div>
+    </div>
+    <div class='wrap article'>
+        
 <p>In neuroscience, we often work with electrophysiology recordings for which the number of neurons recorded is unknown. This is due to the fact that most recordings are <em>extracellular</em>, meaning we don’t insert the microelectrode directly into a cell, but instead insert it into the interstice between neighboring cells where voltage fluctuations from any nearby neurons can influence the recorded signal. The reason for this is the difficulty of <em>intracellular</em> insertion and the stability of the recording thereafter. This begs the question: <strong><em>how then do we disambiguate between different neurons in our recording?</em></strong> This problem is referred to as <strong>spike sorting</strong> and there exists many decades of algorithmic and probabalistic approaches to solving it (<a href="https://stat.columbia.edu/~liam/teaching/neurostat-spr11/papers/EM/Lewicki-Network-98_1.pdf">a classic review</a>).
 <br /><br />
 <a href="https://proceedings.neurips.cc/paper_files/paper/2016/file/1145a30ff80745b56fb0cecf65305017-Paper.pdf">State of the art algorithms</a> take advantage of <a href="https://www.nature.com/articles/nature24636">high channel density electrodes</a> in which the same neuron can be “heard” on multiple channels simultaneously, allowing for more sophisticated techniques which utilize information from these multiple sources. In this post, I aim to implement a much more simple algorithm for spike sorting <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>-dimensional recordings, with the hope that for what we give up in relevance to the cutting edge we will gain back in intuition, learning, and practicability.</p>
@@ -101,8 +106,12 @@ Code for building Fourier series plot<br /></p>
 <span class="n">plt</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
 </code></pre></div></div>
 
-      </div>
-
-  </div>
-  </body>
-  </html>
+    </div>
+    <div id='bibliography'>
+        <div class='wrap'>
+            <ol class="bibliography"></ol>
+        </div>
+    </div>
+</div>
+</body>
+</html>
