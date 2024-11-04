@@ -28,6 +28,7 @@ h6 {
 }
 h1 {
   line-height: 1.2em;
+  margin-bottom: 0px;
 }
 .clear {
   clear: both;
@@ -223,13 +224,4 @@ hr {
 
 #about-page .article {
   margin-top: 20px; /* Reduced margin-top */
-}
-
-/* Specific styles for the home page */
-#home-page {
-  margin-top: 100px; /* Adjust the value as needed to move everything down */
-}
-
-#home-pagecontent {
-  margin-top: 10px; /* Adjust the value to reduce the gap between the title and the links */
 }
