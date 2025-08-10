@@ -219,6 +219,9 @@ hr {
   border-top: 0px solid rgba(0, 0, 0, 0.1);
 }
 
+#about-page .wrap.article a { text-decoration: underline; }
+#about-page .wrap.article a:hover { text-decoration: none; }
+
 #about-page .front-matter h4 {
   margin-bottom: 5px; /* Adjusted margin */
 }
