@@ -1,0 +1,135 @@
+<html>
+<head>
+    <title>What is computational neuroscience?</title>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet">
+    <link href='/assets/css/trac.css' rel='stylesheet'/>
+    <link href='/assets/css/markdown.css' rel='stylesheet'/>
+    <link href='/assets/css/blog.css' rel='stylesheet'/>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+
+</head>
+
+<body id="post-page">
+<div class='content'>
+    <div class="nav">
+  <ul class='wrap'>
+    <li><a href='/'>Home</a></li>
+    <li><a href='/blog.html'>Posts</a></li>
+    <li><a href='/about.html'>About</a></li>
+  </ul>
+</div>
+    <div class='front-matter'>
+        <div class='wrap'>
+            <h1>What is computational neuroscience?</h1>
+            <h4>Here I go over the wtf comp neuro is</h4>
+            <div class='bylines'>
+                <div class='byline'>
+                    <h3>Published</h3>
+                    <p></p>
+                </div>
+            </div>
+            <div class='clear'></div>
+        </div>
+    </div>
+    <div class='wrap article'>
+        
+<h1 id="what-is-neuroscience">What is neuroscience?</h1>
+<p>An adult human brain weighs about 1.4kg, making up roughly 2% of a persons total body weight. Within that 1.4kg organ are some 86 billion neurons, commonly called brain cells. The distinguishing morphological feature of neurons, the feature which makes them different from all others cells in your body, is their arborescent form. Projecting from the central compartment of neurons are long, branching arms which extend outwards and nestle up against other neurons. These arms act essentially as antennae, receiving messages from and sending messages to other neurons, both near and far. Those projections which receive messages from other neurons are called <em>dendrites</em> and those that send messages are called <em>axons</em>. For some sense of scale, in humans the longest of these projections pass from the bottom of the spine all the way down to the foot, whilst the shortest may only span a few thousandths of a millimeter.</p>
+
+<p>What do I mean by <em>“receiving messages from and sending messages to other neurons”</em>? Many of you will have heard that neurons “fire”, whatever that means. When a neuron fires, it generates what is called an <em>action-potential</em>, a large, transient change of voltage within the cell. You can think of the action-potential as simply a pulse of electricity. Importantly, once initiated the action potential is an irreversible event; there is no <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tex">\frac{1}{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.190108em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.845108em;"><span style="top:-2.6550000000000002em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span> action potential or <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>5</mn><mn>6</mn></mfrac></mrow><annotation encoding="application/x-tex">\frac{5}{6}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.190108em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.845108em;"><span style="top:-2.6550000000000002em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span> action potential, it is an all-or-none event. After initiation, the action-potential travels down to the end of the axon known as the <em>“synapse”</em>, whereat the axon is nearly touching the dendrite of another neuron. The arrival of the action-potential at the synapse induces a biochemical cascade whose details we shall ignore, but which has (again ignoring details) one of two effects in the receiving cell: <em>excitation</em> or <em>inhibition</em>.</p>
+
+<div class="figure">
+    <img src="/assets/images/ram_image.png" style="width: 100%; display: block; margin: 0 auto" />
+    <div class="caption">
+        <span class="caption-label">Figure 1.</span> Depictions of pyramidal neurons in layers 4 and 5 of cortex by Santiago Ramón y Cajal.
+    </div>
+</div>
+
+<p>We call the first effect <em>“excitation”</em> because it makes the receiving cell <em>more</em> likely to fire. If the action-potentials arrival at the synapse causes <em>“inhibition”</em> in the receiving cell, it means it makes the receiving cell <em>less</em> likely to fire. Whether or not a neuron sends an excitatory or inhibitory signal is a property of that particular neuron. Importantly, an excitatory signal alone isn’t enough to cause a neuron to fire, only if there is enough excitation, either from multiple neurons or from many excitatory signals arriving in quick succession, will the receiving neuron surpass its action-potential <em>threshold</em> and fire. This is the general logic of neural communication: neurons, depending on if they are excitatory or inhibitory, make their target neurons more or less likely to fire respectively; a neuron may receive input signals from hundreds, even thousands of neurons of both types, and through the integration of all those signals, may or may not fire at any one moment.</p>
+
+<p>An additional layer of complexity is that, for any one neuron, each of its input neurons need not be equally influential in determining whether it will fire. An input from one cell may nearly guarantee a cell fires or doesn’t fire, whereas input from a a different cell may have a relatively modest effect. Critically, this relative importance of a cells inputs is not static and can change over time.</p>
+
+<p>With that laid out, we can finally get to what I believe is the problem statement of neuroscience:</p>
+
+<p><strong><em>how is it that the collective dynamics in networks of billions of neurons enable the behaviors and cognitive processes that allow us to be successful agents in our environment?</em></strong></p>
+
+<p>Framing the problem like this allows us to include all of the things neuroscientists study: <em>perception, movement, memory, decision making, learning, attention, disease, social-interaction, sleep, planning, etc.</em></p>
+
+<div class="figure">
+    <img src="/assets/images/ram_image_2.jpg" style="width: 100%; display: block; margin: 0 auto" />
+    <div class="caption">
+        <span class="caption-label">Figure 1.</span> A drawing of the neurons in the spinal cord by Cajal.
+    </div>
+</div>
+
+<p>I’ve glossed over many important details in this brief introduction to neuroscience. Some additional but noncritical complexities are (1) neuromodulator neurons (noradrenaline, dopamine, serotonin) which don’t fall neatly into the excitatory or inhibitory bucket, but play a large role in determining affective state, motivation, and arousal; (2) how action potentials, their propagation down axons, synaptic transmission, and <a href="https://en.wikipedia.org/wiki/Synaptic_potential?oldformat=true">excitation/inhibition</a> are <a href="https://en.wikipedia.org/wiki/Ion_channel?oldformat=true">biochemically implemented</a>; and (3) the larger, organ-scale neuroanatomical structure and organization of the nervous system.</p>
+
+<!-- <div class='figure'>
+    <img src="/assets/images/dense_neurons.jpeg"
+         style="width: 100%; display: block; margin: 0 auto"/>
+    <div class='caption'>
+        <span class='caption-label'>Figure 1.</span> 
+        The drawings of Cajal are beautiful, but can mislead one to think there are vast empty spaces between neurons. 
+        In reality, real neurons are so densely packed that if we were to look at all of them simulatenously, we wouldn't really be able to see much of anything. 
+        In this image from a 
+        <a href="https://www.science.org/doi/10.1126/science.aay3134">2019 paper in Science</a>, 
+        the cell bodies of neurons in a 0.5 cubic millimeter volume (black box) are shown with their dendrites and axons. 
+        <em>Not</em> shown here are all the axons and dendrites from neurons <em>outside</em> of the volume which course next to and around the cells.
+        In this 0.5 cubic millimeter volume there is 2.7 meters of neuronal cables, and 400,000 synapses!
+    </div>
+</div> -->
+
+<h1 id="what-is-computation">What is computation?</h1>
+
+<p>For many, computation is often conflated with calculation, like performing arithmetic operations on numbers. However, our modern definition of computation is a much broader concept which captures numerical calculations, but also much more. Despite this, calculations are good examples for getting acquainted with what computation <em>feels</em> like. Take finding the product of <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>17</mn></mrow><annotation encoding="application/x-tex">17</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">7</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>24</mn></mrow><annotation encoding="application/x-tex">24</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">4</span></span></span></span></p>
+
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">?</mo><mo>=</mo><mn>17</mn><mo>×</mo><mn>24</mn></mrow><annotation encoding="application/x-tex">
+? = 17 \times 24
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mclose">?</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">1</span><span class="mord">7</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">4</span></span></span></span></span></p>
+
+<p>To do this you most likely rely on the long-multiplication algorithm you learned in grade-school. The algorithm works by breaking down the problem into several easier, single-digit products and a summation. As a refresher let’s quickly walk through it.</p>
+
+<p>To start, let’s write the two factors over one another. We multiply the first digit in the first number by the first digit in the second number.</p>
+
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable rowspacing="0.15999999999999992em" columnalign="center" columnspacing="1em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mspace width="0.8em"></mspace><mn>17</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><munder accentunder="true"><mrow><mo>×</mo><mn>24</mn></mrow><mo stretchy="true">‾</mo></munder></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\begin{array}{c}
+\hspace{0.8em}17 \\
+\underline{\times 24}
+\end{array}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:2.4000000000000004em;vertical-align:-0.9500000000000004em;"></span><span class="mord"><span class="mtable"><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.45em;"><span style="top:-3.61em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mspace" style="margin-right:0.8em;"></span><span class="mord">1</span><span class="mord">7</span></span></span><span style="top:-2.4099999999999997em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord underline"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6444399999999999em;"><span style="top:-2.7566699999999997em;"><span class="pstrut" style="height:3em;"></span><span class="underline-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">×</span><span class="mord">2</span><span class="mord">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2833300000000001em;"><span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.9500000000000004em;"><span></span></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span></span></span></span></span></span></span></p>
+
+<p>Although simple, the power of long-multiplication is that it is agnostic to the particular numbers you are multiplying; it is a general purpose set of logical steps that will <em>always</em> work if followed correctly.</p>
+
+<p>In its modern definition, computation is the <em>transformation of information according to some set of well-defined rules</em>.</p>
+
+<p>The Wikipedia page on Information says that “Information is not knowledge itself, but the meaning that may be derived from a representation through interpretation.”</p>
+
+<h1 id="what-is-neural-computation">What is neural computation?</h1>
+<p>McCulloch-Pitts
+Feature Detectors
+	barlow
+	difference of gaussians
+Hopfield and memory
+schultz
+	reward prediction errors
+ojas rule</p>
+
+<h1 id="some-loose-ends">Some loose ends…</h1>
+
+<p>What is physical computation?
+In a Turing machine there is a notion of observer, we decide the code, this doesn’t exist in brains…
+What about consciousness?</p>
+
+
+    </div>
+    <div id='bibliography'>
+        <div class='wrap'>
+            <ol class="bibliography"></ol>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -306,6 +306,7 @@
 
 .markdown-body code {
   font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  /* font-family: 'Google Sans Code', monospace; */
   font-size: 12px;
 }
 

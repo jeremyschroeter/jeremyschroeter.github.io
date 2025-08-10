@@ -14,9 +14,10 @@ body .content {
 }
 a {
   color: rgba(0, 0, 0, 0.8);
+  text-decoration: none;
 }
 a:hover {
-  text-decoration: none;
+  text-decoration: underline;
 }
 h1,
 h2,
@@ -224,4 +225,19 @@ hr {
 
 #about-page .article {
   margin-top: 20px; /* Reduced margin-top */
+}
+
+/* Post pages only: underline by default inside the post body, remove on hover */
+#post-page .wrap.article a { text-decoration: underline; }
+#post-page .wrap.article a:hover { text-decoration: none; }
+
+#post-page .wrap.article code,
+#post-page .wrap.article pre,
+#post-page .wrap.article kbd,
+#post-page .wrap.article samp,
+#post-page .wrap.article .highlight,
+#post-page .wrap.article .highlight pre,
+#post-page .wrap.article .highlight code {
+  font-family: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+  font-feature-settings: "calt" 0; /* optional: turn off ligature calt if you prefer */
 }
