@@ -96,7 +96,7 @@ h1 {
   line-height: 1.6em;
   color: rgba(0, 0, 0, 0.8);
   margin-top: 20px;
-  margin-bottom: 50px;
+  margin-bottom: 10px;
 }
 .article blockquote {
   margin: 0;
@@ -145,7 +145,6 @@ h1 {
 
 #bibliography ol.bibliography {
   padding-left: 15px;
-  padding-top: 30px;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -243,4 +242,33 @@ hr {
 #post-page .wrap.article .highlight code {
   font-family: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
   font-feature-settings: "calt" 0; /* optional: turn off ligature calt if you prefer */
+}
+
+.katex .texttt{
+  font-family: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+}
+
+.article .figure-outset {
+  border-top: 1px solid hsla(0, 0%, 0%, 0.2);
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.2);
+  padding: 20px 0;
+
+  /* make it a bit wider than the text column */
+  width: 115%;
+  max-width: none;
+
+  /* center it while extending past text margins */
+  margin-left: -7.5%;
+  margin-right: -7.5%;
+}
+
+.article .figure-outset .caption {
+  padding-top: 15px;
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1.2em;
+}
+
+.article .figure-outset .caption-label {
+  font-weight: bold;
 }
