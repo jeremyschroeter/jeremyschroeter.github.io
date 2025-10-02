@@ -2,7 +2,7 @@
 layout: about
 title: About me
 ---
-Hi I'm Jeremy! I am a research scientist in the [Steinmetz Lab](https://www.steinmetzlab.net/) at the University of Washington. In the lab, I am currently developing statistical models to link animal behavior to neural activity, designing methods to integrate transcriptomic and electrophysiology data, and recording from the mouse brain using Neuropixels probes.
+Hi I'm Jeremy! I am a neuroscience PhD student at [Princeton University](https://pni.princeton.edu/).
 
 My academic interests lie at the intersection of neuroscience, and machine learning. In particular I am interested in how machine learning can help propel neuroscientific discovery by helping to decipher massive neural datasets. We are in an unprecedented time in neuroscience, in which we have the ability to simultaneously record from [many more neurons than ever before](https://www.nature.com/articles/nature24636). At the same time, advances in machine learning have given us [powerful tools](https://www.nature.com/articles/s41592-018-0109-9) for analyzing this complex, and high-dimensional data to extract meaningful insights into how the brain works.  
 
