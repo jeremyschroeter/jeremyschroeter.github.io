@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>An Introduction to Maximum Likelihood Estimation</title>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+    <link rel="bibliography" href="/assets/references.bib">
+    <!-- Blog Components -->
+    <script defer src="/dist/blog-components.js"></script>
+</head>
+<body id="post-page">
+<div class='content'>
+    <blog-nav></blog-nav>
+    <blog-header
+      title="An Introduction to Maximum Likelihood Estimation"
+      subtitle="Maximum likelihood estimation is a fundamental technique in statistics. Here I give an introduction to the topic, and lay the groundwork for future posts covering its uses and extensions."
+      date="2024-03-28">
+    </blog-header>
+    <div class='wrap article'>
+
+<p>In statistics, maximum likelihood estimation (MLE) is a fundamental technique used to estimate the parameters of a probability distribution based on observed data. The mathematical formulation of MLE can be intimidating if you haven't seen it before, but the idea motivating it is extremely simple and has deep connections to abductive reasoning, also known as <a href="https://plato.stanford.edu/entries/abduction/">inference to the best explanation</a>. Here, I go over the basics of MLE for future posts covering its uses and extensions. To begin, let's informally discuss a concrete example and then we'll try to generalize what we learn from it and get more rigorous.</p>
+
+<h5>Note: in this post I use MLE to refer both to the technique of maximum likelihood estimation, but also to the estimate itself</h5>
+
+<h2>Flipping Biased Coins</h2>
+
+<p>Imagine you are given a biased coin (a coin for which the odds of flipping heads or tails is not <blog-math>50/50</blog-math>) and are tasked with approximating the probability with which it lands heads. You have nothing at your disposal, no way to directly measure the weightedness of the coin. All you can do is flip it and see the outcome. How do you go about doing this? Your intuition probably tells you to observe a bunch of coin flips and simply count the frequency of heads. Our gut tells us that for a sufficiently high number of flips this number should approach the true probability. But is there a way to reason our way there without relying purely on intuition? Let's try.</p>
+
+<p>Firstly, since we know there are only two possible outcomes we can say that if <blog-math>P(H) = \theta</blog-math> then it must be the case that <blog-math>P(T) = 1 - \theta</blog-math>. Additionally, we know that we have to observe a large number of flips before we can say much of anything about the probabilities, and we also know that these flips are all independent of one another. Let's call the number of flips we observe <blog-math>n</blog-math>. Finally, if you've been exposed to basic probability theory you might remember that the probability of two independent events co-occuring is the product of their individual probabilities. To convince yourself of this, consider the case of flipping two <em>fair</em> coins. The probability of observing any one pair is <blog-math>\frac{1}{4}=\left(\frac{1}{2}\right)^2</blog-math> because we have <blog-math>4</blog-math> distinct outcomes, <blog-math>2</blog-math> for each coin <blog-appendix-ref key="one"></blog-appendix-ref>.</p>
+
+<blog-math block>P(H, T) = P(H)P(T)</blog-math>
+
+<p>With this information we can write the probability of observing a particular set of <blog-math>n</blog-math> coin flips which we denote as <blog-math>\mathcal{D}</blog-math> given a particular probability of flipping heads <blog-math>\theta</blog-math>:</p>
+
+<blog-math block>P(\mathcal{D} \mid \theta) =
+    \overbrace{\theta \cdot \theta \cdots \theta\cdot\theta}^{\mathclap{\text{times we flip heads}}} \cdot
+    \underbrace{(1 - \theta)(1 - \theta)\cdots(1 - \theta)(1 - \theta)}_{\mathclap{\text{times we flip tails}}}
+=\theta^k(1 - \theta)^{n - k}</blog-math>
+
+<p>where <blog-math>k</blog-math> is the number of times we flip heads and <blog-math>n - k</blog-math> is the number of times we flip tails.</p>
+
+<p>Now, ask yourself the following question: given some observed set of flips <blog-math>\mathcal{D}</blog-math>, what value for <blog-math>\theta</blog-math> maximizes <blog-math>P(\mathcal{D})</blog-math>; what value of <blog-math>\theta</blog-math> makes our observed dataset most probable? Said another way, given a set of flip outcomes, what value for <blog-math>P(H)</blog-math> could we choose that would maximize the chances of observing those outcomes? That number <em>is</em> the maximum likelihood estimate.</p>
+
+<blog-math block>\hat{\theta}_{\text{MLE}}=\argmax_\theta{P(\mathcal{D}\mid \theta)}</blog-math>
+
+<p>At first encounter the MLE estimate can often feel slippery or circular. We are using our data to approximate a model that best explains...our data. However, MLE is really the operationalization of a deep intuition: <em>given an outcome, what conditions would have most likely led to that outcome?</em> The mathematical formulation may not be as intuitive, but the underlying idea is beautifully straightforward.</p>
+
+<blockquote style="font-style: italic">
+"At a superficial level, the idea of maximum likelihood must be prehistoric: early hunters and gatherers may not have used the words 'method of maximum likelihood' to describe their choice of where and how to hunt and gather, but it is hard to believe they would have been surprised if their method had been described in those terms." <blog-cite key="stigler2007"></blog-cite>
+</blockquote>
+
+<p>If we have some data, and we are willing to assume that it comes from a particular distribution (a normal distribution, for example), along with some other things, then MLE finds what parameters to give that distribution to make it <strong>most consistent</strong> with our data. In this example we arrived at our distribution through reasoning about the flipping process, and now we are trying to find the value for its parameter <blog-math>\theta</blog-math> which will best explain our data.</p>
+
+<p>Okay, lets see MLE in action. We are tasked with solving the following optimization problem</p>
+
+<blog-math block>\argmax_{\theta}P(\mathcal{D}\mid\theta) = \argmax_{\theta}\left[\theta^k(1 - \theta)^{n - k}\right]</blog-math>
+
+<p>The solution to said problem will be our estimate <blog-math>\hat{\theta}_{\text{MLE}} \approx \theta</blog-math> which is the approximate probability of our biased coin flipping heads. To start we can notice that whatever argument maximizes our function will also maximize its logarithm. This is because the logarithm is a <a href="https://en.wikipedia.org/wiki/Monotonic_function?oldformat=true">monotonically increasing function</a>. Reframing the problem this way will allow us to get rid of those annoying exponents and turn multiplication into addition <blog-appendix-ref key="two"></blog-appendix-ref>.</p>
+
+<blog-math block>\begin{aligned}
+\argmax_{\theta}\left[\theta^k(1 - \theta)^{n - k}\right] &= \argmax_{\theta}\left[\log(\theta^k(1 - \theta)^{n - k})\right] \\
+&= \argmax_{\theta}\left[\log(\theta^k) + \log((1-\theta)^{n-k})\right]\\
+&= \argmax_{\theta}\left[k\log\theta + (n-k)\log(1-\theta)\right]
+\end{aligned}</blog-math>
+
+<p>So far all we have done is some algebraic manipulation of <blog-math>P(\mathcal{D} \mid \theta)</blog-math>. Now to solve the optimization problem, we can take the derivative of our function and solve for its maximum by setting that equal to zero.</p>
+
+<blog-math block>\begin{aligned}
+    \frac{d}{d\theta}\log P(\mathcal{D}\mid\theta) &= \frac{d}{d\theta}\left[k\log\theta + (n-k)\log(1-\theta)\right]\\
+    &=\frac{k}{\theta} - \frac{n-k}{1-\theta}
+\end{aligned}</blog-math>
+
+<p>Now we set our equation equal to <blog-math>0</blog-math>, replace <blog-math>\theta</blog-math> with <blog-math>\hat{\theta}_{\text{MLE}}</blog-math>, and solve. For succinctness I will write <blog-math>\hat{\theta}_{\text{MLE}}</blog-math> as <blog-math>\hat{\theta}</blog-math></p>
+
+<blog-math block>\begin{aligned}
+0 &= \frac{k}{\hat{\theta}} - \frac{n-k}{1-\hat{\theta}}\\
+&=\frac{k(1-\hat{\theta})\hat{\theta}}{\hat{\theta}} - \frac{(n-k)(1-\hat{\theta})\hat{\theta}}{1-\hat{\theta}}\\
+&= k(1 - \hat{\theta}) - \hat{\theta}(n - k)\\
+&= k - k\hat{\theta} - n\hat{\theta} + k\hat{\theta} \\
+&= k - n\hat{\theta}\\
+\hat{\theta}_{\text{MLE}} &= \frac{k}{n}
+\end{aligned}</blog-math>
+
+<p>And so at the end of all of that we find that the maximum likelihood estimate for the probability of flipping heads given a dataset is simply the frequency of head occurences in our data. Our intuitions have been confirmed! That was a lot of math for such a simple answer, but granted this was a pretty simple problem. Can the MLE generalize to a larger problem space where it's harder for our intuition to guide us? The answer is <strong><em>yes</em></strong>, but before we get there, lets simulate some coin flips and see how our estimate does as the size of our dataset increases.</p>
+
+<blog-code language="python">import matplotlib.pyplot as plt
+import numpy as np
+# Parameters
+true_theta = 0.65   # True theta
+n_flips = 1000  # Number of coin flips
+trials = 50   # 50 trials of 1000 flips each
+trial_outcomes = []
+for trial in range(trials):
+    # Simulate coin flips
+    outcomes = np.random.binomial(n=1, p=true_theta, size=n_flips)  # 1 is heads, 0 is tails
+    mle = np.cumsum(outcomes) / np.arange(1, n_flips + 1)
+    trial_outcomes.append(mle)
+# Plotting
+for i, outcome in enumerate(trial_outcomes):
+    if i == 0:
+        plt.plot(outcome, label=r'$\frac{k}{n}$', lw=0.6)
+    else:
+        plt.plot(outcome, lw=0.6)
+plt.axhline(y=true_theta, color='black', linestyle='--', label='True Probability of Heads')
+plt.title('50 Estimates of P(H)')
+plt.xlabel('Number of Coin Flips')
+plt.ylabel('Cumulative Probability of Heads')
+plt.legend()
+plt.tight_layout()
+plt.show()</blog-code>
+
+<blog-figure>
+    <img src="/assets/images/cumulative_mean.png">
+    <figcaption>The maximum likelihood estimate computed for 50 trials with <blog-math>n=1000</blog-math> and <blog-math>P(H)=0.65</blog-math></figcaption>
+</blog-figure>
+
+<p>In the image above, I plot the evolution of <blog-math>50</blog-math> estimates of <blog-math>P(H)</blog-math> as more coin flip landings are observed and used to update the MLE. Qualitatively we can tell our intuition that <em>"more data is better"</em> was also correct. As <blog-math>n</blog-math> gets larger we see our estimates getting closer to the true value, albeit with most of the progress happening within the first <blog-math>400</blog-math> observations. In fact, although we won't prove it here, under some basic assumptions it can be shown that in the limit, as our number of data points approaches infinity, the MLE estimate actually converges to the true value of <blog-math>\theta</blog-math>.</p>
+
+<h2>Generalizing the MLE</h2>
+
+<p>One of the most compelling attributes of maximum likelihood estimation is its broad applicability. MLE is not limited to specific distributions or data types; it can be applied to any situation where a likelihood function can be constructed. However, in its simplest formulation (the one discussed in this post) there are some strong assumptions we have to make about our data for the technique to work well. In the remainder of this post I will go over MLE in its general formulation and highlight what those assumptions are.</p>
+
+<p>We begin by observing a set of data points</p>
+<blog-math block>X_1, X_2, \dots, X_n</blog-math>
+<p>which are assumed to be <strong>independent</strong> and <strong>identical</strong> samples from a probability distribution <blog-math>P(X; \theta)</blog-math>, where <blog-math>X</blog-math> represents the domain of the distribution and <blog-math>\theta</blog-math> represents its parameters. We don't know the value(s) of <blog-math>\theta</blog-math> (that's the point of MLE) but we know the class of distributions (normal, Poisson, etc.) to which <blog-math>P</blog-math> belongs. Ultimately what we want from MLE is a data informed approximation of <blog-math>\theta</blog-math> which we refer to as <blog-math>\hat{\theta}_{\text{MLE}}</blog-math>. Using this estimate we will be able to paramaterize a distribution which reflects our observations and which allows us to make statistical propositions about our dataset.</p>
+
+<p>The first step in MLE is to construct a <strong>likelihood function</strong> <blog-math>\mathcal{L}(\theta)</blog-math></p>
+
+<blog-math block>\mathcal{L}_n(\theta) = \prod_{i=1}^n P(X_i; \theta)</blog-math>
+
+<p>The above equation says that our likelihood function <blog-math>\mathcal{L}(\theta)</blog-math> is the cumulative product (<blog-appendix-ref key="three"></blog-appendix-ref>) of our probability distribution <blog-math>P</blog-math> evaluated at each of our data points <blog-math>X_i</blog-math> for a given parameterization <blog-math>\theta</blog-math>. The fact that the likelihood is a function over the parameters and not the data is important to note and implicit in this equation is all of the assumptions needed for MLE:</p>
+
+<p><strong>(1)</strong> Our data is comprised of independent, uncorrelated samples (hence the cumulative product)<br>
+<strong>(2)</strong> Each data point was sampled identically (<blog-math>P</blog-math> is unchanging across data points)<br>
+<strong>(3)</strong> We know the form of <blog-math>P</blog-math>, though obviously not the exact values of <blog-math>\theta</blog-math></p>
+
+<p>But what does the likelihood function actually tell us? The likelihood function serves as a bridge between our data and our possible choices for parameters. It is a function that quantifies the ability of a particular estimate of <blog-math>\theta</blog-math> to <em>explain</em> our data. If we were to choose a value for <blog-math>\theta</blog-math> and plug it in to <blog-math>\mathcal{L}(\theta)</blog-math> we would get a number quantifying the plausibility of that <blog-math>\theta</blog-math> given the observed data. Note that previously we were using the notation <blog-math>P(\mathcal{D}\mid\theta)</blog-math>, but this is really the same idea. For a given value of <blog-math>\theta</blog-math> what is the probability of our data?</p>
+
+<p>To make this point more clear, let's go back to the coin example. If we were to flip our coin <blog-math>10</blog-math> times and observe that it landed on heads <blog-math>8</blog-math> out of those <blog-math>10</blog-math>, what would be the shape of <blog-math>\mathcal{L}(\theta)</blog-math>? The function now looks like</p>
+
+<blog-math block>\mathcal{L}(\theta) = \theta^8(1-\theta)^2 \qquad 0 \leq \theta \leq 1</blog-math>
+
+<p>What does this look like plotted?</p>
+
+<blog-code language="python">def likelihood_function(n_heads: int, n_tails: int, theta: float) -> float:
+    return (theta ** n_heads) * ((1 - theta) ** n_tails)
+theta_values = np.linspace(0, 1, 1000)
+heads, tails = 8, 2
+plt.plot((likelihood_function(heads, tails, theta_values)))
+plt.xticks(np.arange(0, 1001, 100), [f'{0.1 * i:0.2f}' for i in range(11)])
+plt.xlabel(r'$\theta$')
+plt.ylabel(r'$\mathcal{L}(\theta)$')
+plt.legend()
+plt.show()</blog-code>
+
+<blog-figure>
+    <img src="/assets/images/likelihood_func.png">
+    <figcaption><blog-math>\mathcal{L}(\theta)</blog-math> when <blog-math>k=8, n=10</blog-math></figcaption>
+</blog-figure>
+
+<p>As you can see, our function is clearly maximized at <blog-math>\theta=0.8</blog-math> exactly as expected from our work in the previous section. This is the big point of MLE. If we were to choose any value but <blog-math>\frac{k}{n}</blog-math> for <blog-math>\theta</blog-math>, <blog-math>\mathcal{L}(\theta)</blog-math> which <strong><em>is</em></strong> the probability of our data under different choices of <blog-math>\theta</blog-math>, would be smaller. Thus given the data <blog-math>(k=8,\enspace n-k=2)</blog-math> the probability of observing our data is maximized when we choose <blog-math>\theta=\hat{\theta}_{\text{MLE}}=0.8</blog-math></p>
+
+<p>What would <blog-math>\mathcal{L}(\theta)</blog-math> look like for a different set of observations? If we were to have some other frequency of heads, the curve above would swing between <blog-math>1</blog-math> and <blog-math>0</blog-math> but would <em>always</em> have a maximum value at <blog-math>\frac{k}{n}</blog-math></p>
+
+<blog-code language="python">theta_values = np.linspace(0, 1, 1000)
+heads = np.arange(11)
+for n_heads in heads:
+    n_tails = 10 - n_heads
+    likelihood = likelihood_function(n_heads, n_tails, theta_values)
+    plt.plot(likelihood / np.linalg.norm(likelihood), label=fr'$k = {n_heads}$')
+plt.xticks(np.arange(0, 1001, 100), [f'{0.1 * i:0.2f}' for i in range(11)])
+plt.xlabel(r'$\theta$')
+plt.ylabel(r'$\frac{L(\theta)}{\Vert L(\theta)\Vert_2}$')
+plt.legend(ncol=2)
+plt.show()</blog-code>
+
+<blog-figure>
+    <img src="/assets/images/sweep_k.png">
+    <figcaption>Diagram of the likelihood function as we sweep over values of <blog-math>k</blog-math> and keep <blog-math>n</blog-math> fixed at <blog-math>10</blog-math>. The function has been normalized here for visualization purposes. In reality, for <blog-math>k\neq 0, k\neq 10</blog-math>, the heights are much smaller.</figcaption>
+</blog-figure>
+
+<p>So now if we understand that the likelihood function allows us to put a value for <blog-math>\theta</blog-math> in and get a measure of its ability to explain our data out, it follows that if we want to find an approximation for the true <blog-math>\theta</blog-math> we should choose the <blog-math>\theta</blog-math> which maximizes the likelihood function.</p>
+
+<p>Let's now continue with our generalized version of MLE.</p>
+
+<p>The raw likelihood function is <blog-math>\mathcal{L}_n(\theta)=\prod_{i=1}^nP(X_i; \theta)</blog-math>.
+In general, products are more difficult to work with than sums, both analytically and numerically, and so in practice we always work with the log-likelihood function <blog-math>L(\theta)</blog-math>.</p>
+
+<blog-math block>L_n(\theta) = \log{\mathcal{L}_n(\theta)} = \log\prod_{i=1}^n P(X_i; \theta) = \sum_{i=1}^n \log{P(X_i; \theta)}</blog-math>
+
+<p>As was noted before, transforming the likelihood function like this does not change the <blog-math>\theta</blog-math> which maximizes the function. Now, all that's left to do is find the <blog-math>\argmax</blog-math> over <blog-math>\theta</blog-math>. Typically this involves taking the derivative of <blog-math>L_n(\theta)</blog-math> and finding the global maximum by solving for the value of <blog-math>\theta</blog-math> that makes that equal <blog-math>0</blog-math>.</p>
+
+<blog-math block>\begin{aligned}
+    \hat{\theta}_{\text{MLE}}
+        &= \argmax_{\theta}{L_n(\theta)}\\
+        &= \theta \enspace \text{st} \enspace \frac{d}{d\theta}L_n(\theta) = 0
+\end{aligned}</blog-math>
+
+<p>Depending on the specifics of the particular likelihood function this may be difficult to do analytically.</p>
+
+<h2>A Final Example</h2>
+
+<p>As a final example let's find the maximum likelihood estimate for the Poisson distribution which has parameter <blog-math>\lambda</blog-math>. The Poisson distribution expresses the probability of a given number of events happening in a fixed interval of time or space, and is given by</p>
+
+<blog-math block>P(X; \lambda) = \frac{\lambda^X e^{-\lambda}}{X!}</blog-math>
+
+<p>where <blog-math>k</blog-math> is the number of events and <blog-math>\lambda</blog-math> is the mean rate of occurrences in the interval.</p>
+
+<blog-math block>\begin{aligned}
+    \mathcal{L}_n(\lambda)
+    &= \prod_{i=1}^n \frac{\lambda^{x_i} e^{-\lambda}}{x_i!}\\
+    L_n(\lambda) = \log(\mathcal{L}_n(\lambda))
+    &=\log\left[\prod_{i=1}^n \frac{\lambda^{x_i} e^{-\lambda}}{x_i!}\right]\\
+    &=\sum_{i=1}^n\log\left({\frac{\lambda^{x_i} e^{-\lambda}}{x_i!}}\right)\\
+    &=\sum_{i=1}^n\log{\lambda^{x_i}} + \log{e^{-\lambda}} - \log{x_i!}\\
+    &=\sum_{i=1}^nx_i\log\lambda -\lambda - \log x_i!\\
+    L_n(\lambda)&=-n\lambda + \sum_{i=1}^nx_i\log{\lambda} - \log{x_i!}\\
+    \frac{d}{d\lambda}L_n(\lambda)&=-n + \frac{\sum_{i=1}^nx_i}{\lambda}\\
+    0 &= -n + \frac{\sum_{i=1}^nx_i}{\hat{\lambda}_{\text{MLE}}}\\
+    \hat{\lambda}_{\text{MLE}} &= \frac{1}{n}\sum_{i=1}^nx_i
+\end{aligned}</blog-math>
+
+<p>Thus, the maximum likelihood estimator for the Poisson distribution is simply the sample mean.</p>
+
+<blog-appendix>
+  <blog-appendix-item key="one" title="Joint Probability of Independent Events">
+    <p>If this seems unintuitive to you, imagine you have a pair of unweighted <blog-math>6</blog-math>-sided die and want to know the probability of rolling a <blog-math>6</blog-math> with both of them. If you were to roll a <blog-math>1</blog-math> first, you haven't effected the outcome of the second roll and so there are still <blog-math>6</blog-math> possible outcomes. The key is to realize that this is actually true no matter what number we roll first and so for each outcome of the first roll we have <blog-math>6</blog-math> possible outcomes for the second. Thus our total number of possibilities is <blog-math>6 \cdot 6 = 36</blog-math> and so the probability of any one outcome is <blog-math>\frac{1}{36}</blog-math>. In fact, if we had <blog-math>3</blog-math> die then we would have <blog-math>6^3</blog-math> possibilities each with probability <blog-math>\frac{1}{6^3}</blog-math>. Or if we added a coin flip we would have <blog-math>2 \cdot 6^2</blog-math> possibilities each with probability <blog-math>\frac{1}{72}</blog-math> because for each of the <blog-math>36</blog-math> outcomes from the die rolling we could flip either heads or tails. All of this is a function of the events being independent from one another, and would not work if the outcomes of one process altered the outcomes of another.</p>
+  </blog-appendix-item>
+
+  <blog-appendix-item key="two" title="Logarithm Properties">
+    <p>The logarithm of a product is the sum of the logarithms of the products factors</p>
+    <blog-math block>\log{xy} = \log{x} + \log{y}</blog-math>
+    <p>Notice that this necessitates</p>
+    <blog-math block>\log{x^n} = n\log{x}</blog-math>
+  </blog-appendix-item>
+
+  <blog-appendix-item key="three" title="Cumulative Product Notation">
+    <p>If you aren't familiar with this notation, capital pi <blog-math>\Pi</blog-math> is used to denote the cumulative product of a sequence.</p>
+    <blog-math block>\prod_{i=1}^n x_i = x_1 \cdot x_2 \cdots x_{n-1} \cdot x_n</blog-math>
+    <p>This is exactly what we did for the flipped coin example, where we wrote the likelihood as the cumulative product of the probability of each flip. In that example there were only two possible probabilities and so there was no need for this notation, we could just use exponents.</p>
+  </blog-appendix-item>
+</blog-appendix>
+
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>What is Computational Neuroscience?</title>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+    <link rel="bibliography" href="/assets/references.bib">
+    <!-- Blog Components -->
+    <script defer src="/dist/blog-components.js"></script>
+</head>
+<body id="post-page">
+<div class='content'>
+    <blog-nav></blog-nav>
+    <blog-header
+      title="What is Computational Neuroscience?"
+      subtitle="Where I discuss neurons, Turing machines, and why thinking of the brain as a computational device has been remarkably fruitful."
+      date="2025-06-17">
+    </blog-header>
+<div class='wrap article'>
+
+<p>Just over a month ago I began my doctoral studies in neuroscience. In the preceding spring and summer, as well as throughout my post-bacc, I was often asked by friends and family some variation of the question: <em>"What is it that you study exactly?"</em>. My answer would usually be something along the lines of: <em>"I study how neurons coordinate with one another to create our experience of the world and make us effective agents in our environment"</em>, or when I was feeling less lofty, <em>"I study how animals make decisions"</em>. I like these answers a lot, but very often when I mentioned that I used animals to answer my scientific questions, much of peoples interest and focus would be on <em>that</em>, rather than what I think is the cool part about what I do. Don't get me wrong, I enjoy working with animals, but my interest in neuroscience has never stemmed from wanting to understand the mouse brain in particular. I want to know how neurons, the fundamental unit of <em>all</em> brains, enable our perceptions, thoughts, and actions. This essay arose out of a desire for a better answer to the question: <em>"What do you study"?</em></p>
+
+<p>Originally, the plan was for this to be a short blog post that I could send to loved ones as an announcement of the beginning of my studies. However, I quickly found out that there was no way I could answer the essays titular question without a deep dive into the history of neuroscience, and computer science, and a lot of reading. I am very glad that I decided to do it. This essay is the result of many hours of reading and writing, and I feel I am a better scholar for having done it. Contextualizing my studies in the grander history of my field has made me so excited to be a neuroscientist and has given me a greater appreciation for the brains mystery and beauty than I had before I began writing. I hope you can feel my excitement while reading it.</p>
+
+<h1>What is neuroscience?</h1>
+
+<h3>Touching a Hot Stove</h3>
+
+<p>Accidentally touching a hot stove and burning ones hand is a universal human experience. Usually, before what is happening can even register in your conscious awareness, you rapidly retract your arm from the stove top. Only in the ensuing moments do you begin to feel the pain in your hand. How does this work?</p>
+
+<p>As your hand is placed down on the heat source, temperature-sensitive proteins embedded in the outer membrane of nerve cells in our skin change shape. These proteins form a pore in the membrane, a portal between the outside and inside of the cell. As they change shape the pore opens, allowing positively charged ions like sodium and calcium to flood into the cell. The rush of positive charge catalyzes a complex cascade of biochemical events, ultimately leading the cell to send a barrage of electrical signals up the arm and into the spinal cord. This volley of electricity will eventually cause the sensation of heat to enter your awareness. Before it can do that however, the signals in the spinal cord activate a cellular circuit controlling the muscles in your arm. The cells in this circuit send their own electrical signals to your biceps and triceps where an entirely different biochemical cascade contracts and relaxes them respectively. This coordinated contraction and relaxation of the muscles rapidly bends your arm at the elbow and removes your hand from the stove. All of this happens in a fraction of a second, before you are aware of what has happened or feel any sensation of pain.</p>
+
+<p>Despite my dramatic and elaborate description of this reflex, it is actually one of the simplest neural circuits we know of in the nervous system. Circuits far more complex are thought to underlie every percept you experience, every thought you have, and every action you take. Understanding how those circuits are built and how they enable those experiences, thoughts, and actions is therefore one of the grand aims of science. How does the brain shape who we are and how we interface with the world around us? For the last 150 years neuroscience has attempted to answer this question.</p>
+
+<p>In the summer of 1875, the doctor Richard Caton reported a remarkable but overlooked result to The British Medical Journal<blog-cite key="caton1875"></blog-cite>. Dr. Caton had placed a galvanometer (an antiquated, but very sensitive ammeter) on the surface of a rabbits exposed brain and saw that the device was picking up electric currents. Not only were there currents across the surface of the brain, but they seemed to be related to what the animal was <em>doing</em>. When the rabbit rotated its head or chewed its food, those areas thought (at the time) to be related to those movements saw a greater signal from the galvanometer. Scientists today would say that Caton had conducted the first electroencephalography (EEG) experiment. EEG is used extensively by contemporary researchers to ask questions about human cognition and psychophysiology. But Caton had discovered something far more fundamental than just a method for conducting research; he discovered that the brain is <em>electric</em><blog-fn-ref key="galvani"></blog-fn-ref>. What exactly that means requires zooming in and identifying the fundamental unit of the brain: the neuron.</p>
+
+<blog-figure>
+    <img src="/assets/images/ram_image_no_bg.png"
+         style="width: 100%; display: block; margin: 0 auto"/>
+    <figcaption>A drawing of the neurons in the spinal cord by Cajal.</figcaption>
+</blog-figure>
+
+<h3>What is a Neuron?</h3>
+
+<p>An adult human brain weighs roughly 1.4kg, making up about 2% of a persons total body weight. Within that 1.4kg organ are some 86 billion neurons, commonly called brain cells. <em>C. elegans</em> or nematodes, have 302 neurons; the fly <em>Drosophila</em> have ~135,000 neurons; mice and the rabbits Dr. Caton worked with have ~70,000,000 neurons; and the macaque monkey has ~6.3 billion neurons<blog-cite key="xia2025"></blog-cite>. Neurons are famously beautiful for their arborescent form. Projecting from their central compartment, called the soma, are long branching arms which extend outwards and nestle up against other neurons. As in all of biology, the physical form that neurons take is directly related to the function that they serve. The arms of neurons are the shape that they are, because they act essentially as antennae, receiving messages from and sending messages to other neurons, both near and far. For some sense of scale, in humans the longest of these projections pass from the bottom of the spine all the way down to the foot, whilst the shortest may only span a few thousandths of a millimeter. Neuroscientists refer to those projections which <em>receive</em> messages from other neurons as dendrites, and those that <em>send</em> messages as axons.</p>
+
+<p>What exactly do I mean by <em>"receiving messages from and sending messages to other neurons"</em>? How do neurons communicate? Many of you will have heard that neurons "fire", whatever that means. When a neuron fires, it generates what is called an <em>action-potential</em> or <em>spike</em>: a large, transient change of voltage within the cell. The details of how the action-potential itself is generated are unimportant for this post; for now you can think of the action-potential as simply a pulse of electricity. Once initiated, the pulse propogates from the soma to the end of the axon, whereat the neuron is nearly touching the dendrite of the message-receiving, or target neuron. The arrival of the action-potential at the end of the axon then causes small packets of chemicals called neurotransmitters to fuse to the membrane of the axon and release into the gap between the two cells. These chemicals rapidly diffuse across the gap—called the synapse—and bind to neurotransmitter receptors on the dendritic surface of the target neuron. Upon binding, the chemical signal is translated into <em>some</em> effect in the post-synaptic cell. The range of effects that neurotransmitters can have on a cell is vast and dependent on the exact neurotransmitter released as well as what receptors are present on surface of the dendrite. What are these neurotransmitters?</p>
+
+<p>Neurotransmitters constitute many of the biggest household names in neuroscience: dopamine, serotonin, adrenaline, endorphins, etc. As you have likely heard, these chemicals play a large role in determining our affective state, motivation, and arousal. The saliency of those aspects of our lives may lead one to think that neurons which release those neurotransmitters would be widespread and numerous, but in fact they represent roughly 1% of all the neurons in the brain<blog-fn-ref key="merfish"></blog-fn-ref><blog-fn-ref key="widespread"></blog-fn-ref>. Instead, the most prevalent of the neurotransmitters are glutamate and gamma-aminobutyric acid (GABA). Compared to the better known brain chemicals, glutamate and GABAs effect on their target neurons are simple: they can either <em>excite</em> or <em>inhibit</em> them respectively.</p>
+
+<p>By excitation and inhibition, we mean the effect a neuron has on its downstream neurons propensity to fire. If a neuron is <em>excitatory</em>, that means it makes its targets more likely to fire. If a neuron is <em>inhibitory</em>, that means it makes its targets less likely to fire. If we include neurotransmitters besides glutamate and GABA, this clean picture dividing excitatory and inhibitory becomes much more complex<blog-fn-ref key="receptors"></blog-fn-ref>, but for these two it works<blog-fn-ref key="gaba-metabotropic"></blog-fn-ref>. What exactly do I mean by "propensity to fire"? Once initiated the action potential is an irreversible event; there is no <blog-math>\frac{1}{2}</blog-math> action potential or <blog-math>\frac{5}{6}</blog-math> action potential, it is an all-or-none event. However, in order for an action potential to unfold, it must first surpass its action potential threshold, a minimum voltage required to kickstart the action potential machinery. As the cell receives excitatory and inhibitory inputs from its upstream neurons, the voltage across the cell is pushed up and down respectively. Only if there is enough excitation from many excitatory signals arriving in quick succession, (or a lack of inhibitory signals) will the neuron surpass its threshold and fire. This is the general logic of neural communication: neurons, depending on if they are excitatory or inhibitory, make their target neurons more or less likely to fire; a neuron may receive inputs from hundreds, even thousands of neurons of both types, and through the integration of all those signals across space and time<blog-fn-ref key="integration"></blog-fn-ref>, may or may not fire at any one moment.</p>
+
+<blog-figure>
+    <img src="/assets/images/ram_image.png"
+         style="width: 100%; display: block; margin: 0 auto"/>
+    <figcaption>Depictions of pyramidal neurons in layers 4 and 5 of cortex by Santiago Ramón y Cajal.</figcaption>
+</blog-figure>
+
+<p>An additional layer of complexity is that, for any one neuron, each of its input neurons need not be equally influential in determining whether it will fire. An input from one cell may nearly guarantee a cell fires or doesn't fire, whereas input from a a different cell may have a relatively modest effect. Critically, this relative strength of a cells inputs is not static and can change over time. We'll see later how changes in these synaptic strengths are foundational to theories for how we learn.</p>
+
+<h3>Seeing Edges</h3>
+
+<p>150 years after Catons' discovery, neuroscience is a rapidly evolving and blossoming field. Scientists no longer use galvonometers, but instead have at their disposal sophisticated technologies like <a href="https://en.wikipedia.org/wiki/Functional_magnetic_resonance_imaging?oldformat=true">fMRI machines</a>, <a href="https://en.wikipedia.org/wiki/Microelectrode_array?oldformat=true">multielectrode arrays</a>, <a href="https://en.wikipedia.org/wiki/Calcium_imaging?oldformat=true">calcium microscopy</a>, and <a href="https://en.wikipedia.org/wiki/Optogenetics?oldformat=true">optogenetics</a> to ask questions about what makes us tick. In the 21st century, nearly all aspects of ourselves are open for neuroscientific investigation: perception, movement, memory, decision making, learning, attention, disease, social-interaction, sleep, planning, etc. How these aspects of our lives are implemented by our neural circuits is still largely a mystery.</p>
+
+<p>As neuroscience has matured, the advent of an entirely different discipline, computer science, has occurred mostly in parallel and dramatically changed our world and us along with it. Their intersection is where we are headed, but before we get there we must understand...</p>
+
+<h1>What is computation?</h1>
+
+<h3>Long-Multiplication</h3>
+
+<p>For many, computation is often conflated with calculation, like performing arithmetic operations on numbers. However, our modern definition of computation captures a much broader concept which includes numerical calculations, but also much more. Nevertheless, calculations are good examples for getting acquainted with what computation <em>feels</em> like. Take finding the product of <blog-math>17</blog-math> and <blog-math>24</blog-math></p>
+
+<blog-math block>? = 17 \times 24</blog-math>
+
+<p>To do this you most likely rely on the long-multiplication algorithm you learned in grade-school (although you might have not called it an "algorithm"). The process works by breaking down the problem into several easier, single-digit products called partial products, which we can sum together to get our answer. As a refresher let's quickly walk through it.</p>
+
+<p>To start, let's write the two factors over one another in a diagram like so.</p>
+
+<blog-math block>\begin{array}{r}
+17 \\
+\underline{\times 24}
+\end{array}</blog-math>
+
+<p>Now, imagine a pointer placed underneath the first digit on our bottom factor, <blog-math>4</blog-math>, and imagine that the pointer allows us to write the number on a scratch pad followed by a times symbol.</p>
+
+<p>The algorithm then instructs us to move the pointer to the first digit of our top factor and write it to the scratch pad as well.</p>
+
+<p>We can easily solve this simpler multiplication problem by recalling our times tables to get <blog-math>28</blog-math>, which we write below the underline in our diagram, aligned with the first digits of our two factors. We then erase our scratch pad.</p>
+
+<blog-math block>\begin{array}{rcrcr}
+& & \downarrow & & \downarrow
+\\
+17 & & 17 & & 17
+\\
+\underline{\times 24} & \enspace\implies & \underline{\times 24} & \enspace\implies & \underline{\times24}
+\\
+\enspace \uparrow & & & & 28
+\\
+4 \times & & 4 \times 7 &
+\end{array}</blog-math>
+
+<p>Next, we rewrite the first digit of our bottom factor to the scratch pad and move our pointer to the second digit of the top factor to get our second simpler product. Since our pointer is now focused on the second digit of our first factor, we additionally multiply this product by <blog-math>10</blog-math> and then sum it with our previous partial product.</p>
+
+<blog-math block>\begin{array}{rcrcr}
+\downarrow \enspace & & \downarrow \enspace
+\\
+17 & & 17 & & 17
+\\
+\underline{\times 24} & \enspace\implies & \underline{\times 24} & \enspace\implies & \underline{\times24}
+\\
+28 & & 28 & & 68
+\end{array}</blog-math>
+
+<blog-math block>10 \times 4 \times 1</blog-math>
+
+<p>We then repeat this process of multiplying the individual digits of <blog-math>17</blog-math> and <blog-math>24</blog-math>, using the second digit in our bottom factor, multipling by <blog-math>10</blog-math> for the first partial product, and <blog-math>100</blog-math> for the second<blog-fn-ref key="carry"></blog-fn-ref>.</p>
+
+<p>Finally, we can sum our two numbers to acquire our answer</p>
+
+<blog-math block>\begin{array}{r}
+17 \\
+\underline{\times 24} \\
+68 \\
+340
+\end{array}</blog-math>
+
+<blog-math block>17 \times 24 = 68 + 340 = 408</blog-math>
+
+<p>Although simple, the power of long-multiplication is that it is agnostic to the particular numbers you are multiplying; it is a general purpose set of logical steps that will <em>always</em> work if followed correctly. Long-multiplication is a useful example of an algorithm because it introduces several concepts foundational to models of computation.</p>
+
+<p>First and foremost is the notion of <strong><em>state</em></strong>. The state of our algorithm captures the current values of all our relevant variables, and the position we occupy in the sequence of our program. In our long-multiplication example, the state at any one moment might include: the two numbers we are multiplying, the current contents of the scratch pad, and whatever partial products we have constructed at that point. Critically, our current state is the unique determinant of our future state. This naturally leads to the notion of a <strong><em>transition rule</em></strong> (or transition function). This is the set of rules which instructs us what to do next given the current state. In long-multiplication, one such rule might be <em>"if two numbers are in the scratch pad, compute their product and add it to the current partial product"</em>, or <em>"if there are no unused digits in the top factor, move to the next unused digit in the bottom factor"</em>. These transitions are deterministic in the sense that, given the current state, they specify exactly what should happen next. For a given computation, we can represent the set of possible states and their transitions with a state diagram or flow-chart.</p>
+
+<blog-figure>
+    <img src="/assets/images/long-multiplication.svg"
+         style="width: 400px; display: block; margin: 0 auto"/>
+    <figcaption>Simple state diagram for the long-multiplication algorithm.</figcaption>
+</blog-figure>
+
+<p>Another critical component of computation is an <strong><em>alphabet</em></strong>, the set of symbols we use to represent the information. In the long-multiplication example above, we chose to represent the numbers with Arabic numerals, however, we could have implemented the same abstract algorithm in any number system. By "same abstract algorithm", I mean we could still decompose the product into a sum of partial products. The set of possible states and transition rules however, would have to be different. For example, in Arabic numerals, shifting one position to the left means multiplying the corresponding digit by ten, whereas in binary, it means multiplying the corresponding digit by two. How we represent information matters for how we manipulate and process it.</p>
+
+<blog-math block>408 \quad 110011000 \quad \mathrm{CDIIV} \quad 四百〇八 \quad ៤០៨ \quad ፬፻፰ \quad ת"ח</blog-math>
+
+<p>Finally, in the background there is some notion of a <strong><em>memory-space</em></strong> in which we perform the computation, and process the symbols. In our example using long-multiplication, this space would be the scratch pad on which we wrote out the initial problem, calculated the partial products, and wrote out our answer.</p>
+
+<p>All of these ideas may seem rather abstract, and in truth they are. Let's take a slight detour through the history of computer science to motivate why computation is formulated using these ideas.</p>
+
+<h3>The Birth of Computer Science</h3>
+
+<p>In the 1930's, mathematicians and logicians were playing around with the ideas outlined above in an attempt to solve a challenge posed by the mathematician David Hilbert, the <em>Entscheidungsproblem</em> or <em>decision problem</em>. The challenge poses the following question:</p>
+
+<p><strong><em>Is there an effective procedure (an algorithm) which, given a set of axioms and a mathematical proposition, decides whether it is or is not provable from the axioms?</em></strong></p>
+
+<p>Stated less formally, the decision problem asks whether there is a general method that can always tell us, for any mathematical statement, if it can be proven from a given set of rules.</p>
+
+<p>At the beginning of the 20th century, many mathematicians dreamed of formalizing all of mathematics such that every mathematical truth could be expressed as a statement of <a href="https://en.wikipedia.org/wiki/First-order_logic?oldformat=true">first-order logic</a> in some systematic and precise symbolic language. If such a system existed then proving mathematical theorems wouldn't require intuition or inspiration, but would instead amount to following the instructions of some well-defined procedure, much like the long-multiplication algorithm. In other words, it could be automated. This naturally led to the decision problem, which asked whether a single universal procedure could take as input any mathematical statement, along with the rules and axioms of the system and determine whether a proof for the statement exists at all.</p>
+
+<p>The answer to the decision problem would come in 1936, when Alan Turing and Alonzo Church independently proved that no such procedure could exist<blog-cite key="church1936"></blog-cite><blog-cite key="turing1936"></blog-cite>. In proving this however, both mathematicians needed to first formalize the notion of an effective-procedure or algorithm. In doing so, they essentially invented computer science and created frameworks that underlie all modern computing to this day.</p>
+
+<p>In its modern definition, computation is the <strong><em>transformation of information according to some set of well-defined rules.</em></strong> The most famous model that realizes this definition is the one proposed by Turing, the Turing machine <blog-appendix-ref key="turing-formalism"></blog-appendix-ref>. To see how this model takes shape, let's take a high-level look at how a Turing Machine works.</p>
+
+<h3>Turing Machines</h3>
+
+<blog-figure>
+    <img src="/assets/images/turing_machine.gif"
+         style="width: 400px; display: block; margin: 0 auto"/>
+    <figcaption>An artists depiction of a mechanical Turing machine</figcaption>
+</blog-figure>
+
+<p>A Turing machine is an abstract computational device capable of reading from and writing to a strip of tape. The tape is imagined to be infinitely long and divided into discrete cells each containing a symbol from some alphabet. You can think about it as an infinitely long video tape where each frame on the tape contains one of our symbols. The symbols could be numbers from any number system, letters from any language, anything really, but critically we must be capable of deriving meaning through interpreting them.</p>
+
+<p>Sitting above the the tape is a tape head, like those capable of reading and erasing cassettes or VHS tapes. At any moment, the head is positioned over one of the cells on the tape. The head also posseses an internal state, much like the state we discussed earlier. Depending on the current state of the head and the symbol it reads from the cell on the tape, the head may erase the cell, write a new symbol in its place, and move to the adjacent cell on the right or left.</p>
+
+<p>That's it. That's a Turing machine.</p>
+
+<p>I'm guessing that at this point, most readers will be unconvinced that such a bizarre device is capable of doing anything besides spinning tape around. To see how a Turing machine is a model of computation let's walk through an example. More specifically let's see how we can program a Turing machine to check if a sequence of symbols on the tape is palindromic.</p>
+
+<p>We will keep our alphabet of symbols small <blog-math>(a, b, \sqcup)</blog-math> where <blog-math>\sqcup</blog-math> encodes a "blank" part of the tape.</p>
+
+<blog-math block>\newcommand{\cell}[1]{\;\;#1\;\;}
+\begin{array}{cccccccc}
+\downarrow\! & & & & & & & &
+\end{array}
+\\
+\begin{array}{|c|c|c|c|c|c|c|c|c|c|}
+  \hline
+  \cell{\cdots} & \cell{\sqcup} & \cell{\sqcup} & \cell{a} &
+  \cell{b} & \cell{b} & \cell{a} &
+  \cell{\sqcup} & \cell{\sqcup} & \cell{\cdots} \\
+  \hline
+\end{array}</blog-math>
+
+<p>Our transition function can be written out as a table where our rows are our possible states, and our columns are the symbols of our alphabet.</p>
+
+<blog-math block>\begin{array}{c|ccc}
+\text{} & a & b & \sqcup \\ \hline
+\text{start}   & (\text{haveA},\sqcup,R) & (\text{haveB},\sqcup,R) & (\text{accept},\sqcup,R)\\
+\text{haveA}   & (\text{haveA},a,R)      & (\text{haveA},b,R)      & (\text{matchA},\sqcup,L)\\
+\text{haveB}   & (\text{haveB},a,R)      & (\text{haveB},b,R)      & (\text{matchB},\sqcup,L)\\
+\text{matchA}  & (\text{back},\sqcup,L)  & (\text{reject},b,R)     & (\text{accept},\sqcup,R)\\
+\text{matchB}  & (\text{reject},a,R)     & (\text{back},\sqcup,L)  & (\text{accept},\sqcup,R)\\
+\text{back}    & (\text{back},a,L)       & (\text{back},b,L)       & (\text{start},\sqcup,R)
+\end{array}</blog-math>
+
+<p>To run the algorithm we can set the initial state to the <blog-math>\text{start}</blog-math> state, and place our tape over the leftmost cell that isn't the <blog-math>\sqcup</blog-math> symbol. In our case, this symbol is <blog-math>a</blog-math>. To run the algorithm, we consult our table for the <blog-math>\text{start}</blog-math> position and <blog-math>a</blog-math> symbol. The transition rule for this state and current symbol says to transition into the <blog-math>\text{haveA}</blog-math> state, replace the <blog-math>a</blog-math> symbol with a <blog-math>\sqcup</blog-math> and move our head one position to the right <blog-math>R</blog-math>.</p>
+
+<p>If we continue to follow this procedure, consulting the table and updating the machine, <em>and</em> our sequence is palindromic, we will eventually reach the <blog-math>\text{accept}</blog-math> state which is a special state that ends the algorithm. At that point the tape should be filled with <blog-math>\sqcup</blog-math>. If however, our sequence of <blog-math>a</blog-math> and <blog-math>b</blog-math> is <em>not</em> palindromic, then we will eventually transition to the <blog-math>\text{reject}</blog-math> state, which will also end the algorithm. You can think of the <blog-math>\text{accept}</blog-math> state as returning the value <blog-math>\text{True}</blog-math> and the <blog-math>\text{reject}</blog-math> state as returning the value <blog-math>\text{False}</blog-math>.</p>
+
+<p>Now, you still might not be convinced that this will work. I myself cannot look at the table and quickly understand the logic underlying the algorithm. However, you can see this exact procedure play out at <a href="https://turingmachine.io/">this link</a>. The authors of the website choose to represent the transition function as a state diagram rather than a table, which can help in understanding. See if you can figure out how the algorithm works by stepping through the transitions.</p>
+
+<p>If you don't feel like doing that I will briefly outline how it works on the sequence <blog-math>abba</blog-math>. From the <blog-math>\text{start}</blog-math> state, the algorithm transitions into the <blog-math>\text{haveA}</blog-math> state and erases the first symbol <blog-math>a</blog-math>, replacing it with a <blog-math>\sqcup</blog-math>. The <blog-math>\text{haveA}</blog-math> state instructs the tape to move right until it reaches the end of the sequence, encoded with a <blog-math>\sqcup</blog-math>. The machine then transitions to the <blog-math>\text{matchA}</blog-math> state, and reverses once to reach the last symbol of the sequence. If the last symbol is <strong>not</strong> <blog-math>a</blog-math> then the state transitions to the <blog-math>\text{reject}</blog-math> state. If the last symbol <strong>is</strong> <blog-math>a</blog-math> then it replaces it with a <blog-math>\sqcup</blog-math>, transitions into the <blog-math>\text{back}</blog-math> state, and proceeds back to the beginning of the sequence. Now if the first and last symbol were the same then they will have both been erased and so we can just run the same steps again for this shorter sequence. The second time it will visit the <blog-math>\text{haveB}</blog-math> and <blog-math>\text{matchB}</blog-math> states, but the process will be identical. The algorithm uses the fact that if a sequence is palindromic, then we can remove the first and last symbols and that new sequence will still be a palindrome. If each subsequence obtained by deleting the first and last symbol is palindromic, then the entire sequence is palindromic.</p>
+
+<p>Phew...</p>
+
+<p>The big takeaway from this section is that Turing was able to show that this simple machine is capable of performing <em>any</em> computation, and executing <em>any</em> algorithm. In fact, the Turing machines simplicity is where its power of expression comes from; from simple primitive operations the Turing machine is capable of implementing computations of arbitrary complexity. From this one example, you may still not be convinced so I again suggest you go to the link above and checkout the other computations they have implemented.</p>
+
+<p>Turing was actually able to go one step further and showed that one could construct a universal Turing machine, capable of simulating any other single-use Turing machine if given the correct instructions. At a high level, this is why modern computers are capable of running all kinds of different programs and software; the programming languages operating our computers are equivalent to universal Turing machines. Although Turing machines are the foundation of computing, modern digital computers are only equivalent to them in a <em>theoretical</em> sense. There is not a tape spinning around in your phone or laptop, and no one writes computer software by writing out elaborate transition tables <blog-appendix-ref key="code-impl"></blog-appendix-ref>. Todays computers rely on more efficient models of computation that have been designed in the decades following Turing and Church's original breakthroughs.</p>
+
+<p>It wasn't only mathematicians and logicians that noticed Turings work. Neuroscientists were paying attention as well.</p>
+
+<h1>What is neural computation?</h1>
+
+<h3>Neurons as Computers</h3>
+
+<p>Warren McCulloch was a neurophysiologist and psychiatrist with philosophical ambitions. For years, he had been attempting to develop a theory which would resolve the mind-body problem. He believed that just as chemistry has atoms and genetics has genes, <strong>thought</strong> too must be composed of discrete, individible units which he called "psychons". If these building blocks for mental events could be discovered, the divide between the psychological and physical aspects of our being would vanish and the mind could be reduced to the brain<blog-cite key="anderson1998"></blog-cite>.</p>
+
+<p>By the early 20th century, the all-or-none aspect of the action potential had been well established, though the exact biophysical mechanism had yet to be worked out. At some point in the 1920's, McCulloch had come to believe that the action-potential made up the mental-atoms he was seeking. Through the mechanisms of neural excitation and inhibition, he believed that networks of neurons were used by the brain to perform logical operations to construct our mental world. Independently, the young biophysicist Walter Pitts had also come to see the brain as fundamentally a logical machine.</p>
+
+<blockquote style="font-style: italic">
+"That was the proposition that Warren and Walter adopted. If a neuron could be axiomatized as a device that performed elementary logical operations, then a nervous system would be regarded as a computer."<blog-cite key="anderson1998"></blog-cite>
+</blockquote>
+
+<p>McCulloch and Pitts took the all-or-none nature of the action potential and used it to abstract neurons into simple binary machines which could be in one of two states: active (firing action potentials) or inactive (not firing action potentials). The genius in this move was to then map the active and inactive states of these neurons onto the binary states of <blog-math>\text{True}</blog-math> and <blog-math>\text{False}</blog-math> in formal logic. Under their theory, a neurons activity was not merely a physiological event, but the output of evaluating a logical proposition. Excitatory inputs act like affirmations of a proposition, while inhibitory inputs function like denials. Under their theory, by connecting excitatory and inhibitory neurons in specific patterns, neural networks could be used to implement logical operations such as <blog-math>\text{AND}</blog-math>, <blog-math>\text{OR}</blog-math>, and <blog-math>\text{NOT}</blog-math> (conjunction, disjunction, and negation). For example, a McCulloch Pitts neuron which has two inputs and only fires if both of its inputs are active effectively implements the <blog-math>\text{AND}</blog-math> function.</p>
+
+<blog-figure>
+    <img src="/assets/images/MP_net.png"
+         style="width: 400px; display: block; margin: 0 auto; margin-right: 125px"/>
+    <figcaption>A McCulloch Pitts network that implements the <blog-math>\text{AND}</blog-math> function</figcaption>
+</blog-figure>
+
+<p>These ideas proposed by McCulloch and Pitts were not just some fun thought experiment, but a formal mathematical theory. In their 1943 paper, <em>A Logical Calculus of the Ideas Immanent in Nervous Activity</em>, the two researchers showed that wiring up networks of their simplified neurons was equivalent to composing primitive logical operations, and that in doing so, one could construct networks to evaluate any logical proposition<blog-fn-ref key="completeness"></blog-fn-ref><blog-cite key="mcculloch1943"></blog-cite>. In order to show this, they provided a systematic way to map from any logical proposition onto a network of their neurons.</p>
+
+<p>At this point, it is in our interest to briefly go over the mathematical details of their theory. Their formalization will serve as a useful introduction to model neural networks and we will see how theorists have since extended it. The original presentation used by McCulloch and Pitts is rather antiquated and so I will instead adopt a more modern notation.</p>
+
+<div class="callout">
+<strong>McCulloch Pitts Networks</strong>
+<br>
+  <ul>
+    <li>A McCulloch Pitts network of size <blog-math>n</blog-math> consists of <blog-math>n</blog-math> neurons, denoted <blog-math>x_1, x_2, \dots, x_n</blog-math>. We use <blog-math>i</blog-math> as an indexing variable to reference a single neuron in our network <blog-math>x_i</blog-math>. </li>
+    <li>In the network, there is some notion of time which is discrete. We imagine that there are timepoints <blog-math>t</blog-math>, and that the dynamics of the network unfold across timepoints discretely, <blog-math>t, t+1, t+2, \dots</blog-math>.</li>
+    <li>Each neuron is associated with a set of synaptic weights which quantify the size of its effect on every other neuron. The synaptic weight also tells us if that neuron is excitatory or inhibitory. We use the magnitude of the weight to quantify its strength, and its sign to indicate whether it is excitatory or inhibitory. The synapse between <blog-math>x_1</blog-math> and <blog-math>x_2</blog-math> is denoted <blog-math>w_{1,2}</blog-math>. For example, we can read the equation <blog-math>w_{1, 2}=-1</blog-math> as, <em>"Neuron <blog-math>1</blog-math> has an inhibitory synapse with neuron <blog-math>2</blog-math> with magnitude <blog-math>1</blog-math>"</em>.</li>
+    <li> At each timepoint, a neuron can be in one of two states: firing or not firing. If a neuron fires at a particular timepoint <blog-math>t</blog-math>, we say that it outputs a <blog-math>1</blog-math>, and if it does not fire we say that it outputs a <blog-math>0</blog-math>. For example, we can read the equation <blog-math>x_i(t) = 1</blog-math> as saying, <em>"The neuron <blog-math>x</blog-math> fires at time <blog-math>t</blog-math>"</em></li>
+    <li>Additionally, each neuron is associated with a threshold <blog-math>\theta_i</blog-math>.</li>
+    <li>For a particular neuron <blog-math>x_i</blog-math> at some time step <blog-math>t</blog-math>, we determine if it will fire by taking the activity of every other neuron <blog-math>x_j, j\neq i</blog-math> at timepoint <blog-math>t - 1</blog-math> and multiplying it by its synaptic weight with <blog-math>x_i</blog-math>. If the sum of these products is greater than the threshold <blog-math>\theta_i</blog-math> then <blog-math>x_i(t) = 1</blog-math>. If they are not greater than <blog-math>x_i(t) = 0</blog-math>. We can express this mathematically using the Heaviside function <blog-math>H</blog-math> <blog-appendix-ref key="heaviside"></blog-appendix-ref> which is <blog-math>0</blog-math> for inputs less than <blog-math>0</blog-math> and <blog-math>1</blog-math> for inputs greater than <blog-math>0</blog-math>
+    <blog-math block>
+    x_i(t) = H\Biggl(\sum_{\substack{j=1 \\ j\neq i}}^n x_j(t - 1)w_{j, i} - \theta_i\Biggr)
+    </blog-math>
+    In words, the above equation says, <em>"A neuron fires at a particular timepoint if the sum of its inputs activity on the previous timepoint is greater than its threshold."</em>
+    </li>
+  </ul>
+</div>
+
+<p>There are a few details I have left out of my explanation of the McCulloch Pitts model. Most glaring is that in the true model, any inhibitory input completely nullifies a neurons output. This is necesarry in order to faithfully implement negation, or the <blog-math>\text{NOT}</blog-math> function.</p>
+
+<p>The McCulloch and Pitts model was revolutionary, but not simply because they applied math to the nervous system. Indeed, Walter Pitt's mentor Nicolas Rashevsky and others had been working on modeling biological systems in the language of math before 1943<blog-cite key="rashevsky1960"></blog-cite>. What made their idea truly unique was that it couched the brain in the language of computation. They conceived of the nervous system not just as a physical object, but as a computational device, and it was which made their work remarkable. Of course, the two were well aware of Turing and Church's work on the foundations of computation in the preceding decade and even argued in their paper that, through some small adjustments, their networks and Turing Machines (and Church's <blog-math>\lambda</blog-math>-calculus) could be made equivalent<blog-fn-ref key="turing-equivalence"></blog-fn-ref>. It's certainly not too hard to imagine that, if these neurons were wired up in such a way that their activity represented information about the letters in a word, it would be possible to construct a network that could tell us if that word was a palindrome.</p>
+
+<h3>Feature Detectors</h3>
+<p>Barlow, Hubel, difference of gaussians, conv nets maybe? Perceptron?</p>
+
+<h3>Learning and Memory</h3>
+<p>Hebb, Hopfield</p>
+
+<h3>Computation Through Dynamics</h3>
+<p>ring attractor, fly circuit, Bigger principles about dynamical motifs. lots of papers to consider</p>
+
+<h1>Some loose ends</h1>
+
+<h3>Organizing a Brain</h3>
+<p>The brain is not just a reservoir of neurons, there is deep structure.</p>
+
+<div class='figure-outset'>
+    <img src="/assets/images/brain_fluor.jpg"
+         style="width: 100%; display: block; margin: 0 auto"/>
+    <div class='caption'>
+        <span class='caption-label'>Figure 6.</span> Hippocampus coronal slice with lots of color labeled neurons.
+    </div>
+</div>
+
+<h3>Physical Computation</h3>
+<p>What is physical computation? Mention Marr somewhere here. What does it mean to impelment a computaiton physically?</p>
+
+<h3>Self-Organization</h3>
+<p>In a Turing machine there is a notion of observer, we decide the code, this doesn't exist in brains, the brain self-organizes.</p>
+
+<h3>Consciousness</h3>
+<p>What about consciousness?</p>
+
+<blog-footnotes>
+
+<blog-footnote key="galvani">Some might say that <a href="https://en.wikipedia.org/wiki/Luigi_Galvani?oldformat=true">Luigi Galvani</a>—after whom the galvonometer is named—deserves this credit rather than Caton, however, Galvani discovered bioelectricity in the muscles, not in the brain.</blog-footnote>
+
+<blog-footnote key="merfish">I got the 1% figure from my own calculation using the Allen Institutes <a href="https://knowledge.brain-map.org/data/5C0201JSVE04WY6DMVC/collections">MERFISH datasets</a>. There are some issues with using this method. For one, the dataset doesn't have any neuropeptide information (without looking into the genes themselves). More importantly though is that whether or not we can extrapolate the ratios of cell types from this dataset to the actual brain is not 100% clear. If you read this and know a better source for these numbers though let me know!</blog-footnote>
+
+<blog-footnote key="widespread">Although it's true that they represent a small proportion of the total neurons, those neurons which <em>do</em> release the famous neurotransmitters have exceptionally widespread projections all over the brain. So it isn't particularly surprising from their physiology that they have an outsized impact on us.</blog-footnote>
+
+<blog-footnote key="receptors">The reason it is complex is because of the types of receptors that each neurotransmitter can bind to. Serotonin, dopamine, endorphins, etc. all primarily use <a href="https://en.wikipedia.org/wiki/Metabotropic_receptor?oldformat=true">metabotropic receptors</a> to exert their effects on the target cell. Glutamate and GABA use <a href="https://en.wikipedia.org/wiki/Ligand-gated_ion_channel?oldformat=true">ionotropic receptors</a>. Ionotropic receptors are ion channels and are relatively simple. When a neurotransmitter binds to an ionotropic receptor, they change shape and form a pore in the membrane that allows ions like sodium and potassium to rapidly flow into or out of the cell and change the membrane voltage. These ions can have second order effects by binding to proteins in the cell, but these are usually not the largest or most immediate effect. Metabotropic receptors on the other hand are massively complex; they allow neurotransmitter binding to be coupled to essentially any cellular process. Gene expression, modulation of ion channels, regulation of neurotransmitter release, changes in cellular metabolism, etc. Serotonin has 15 receptors, dopamine has 5, etc. These things get really complicated.</blog-footnote>
+
+<blog-footnote key="gaba-metabotropic">Glutamate and GABA also have metabotropic receptors.</blog-footnote>
+
+<blog-footnote key="integration">Yes neurons integrate over both space <em>and</em> time! I thought this was too much detail for the main text, but I'll elaborate here. Basically, the base of a neurons axon, in the cell body, is where the action potential is generated. For those curious, it's because of a high density of sodium channels. What this means is that neurons can have differential influence on their downstream targets depending on where on the cell they form a synapse. If two neurons forms a synapse closer to the cell body—where the action potential is generated—it's influence will be greater compared to if it formed a synapse at the far tip of a dendrite.</blog-footnote>
+
+<blog-footnote key="carry">You were probably not taught to multiply by 10, but instead to "carry" the digit by writing it above the tens place in the above factor and adding it to the second partial product. You end up doing the same calculation, but I bet that visually it's more intuitive for kids to learn then remembering to multiply by 10 or 100.</blog-footnote>
+
+<blog-footnote key="completeness">In mathematical logic, this property is referred to as <em><a href="https://en.wikipedia.org/wiki/Completeness_(logic)?oldformat=true">logical completeness</a></em>.</blog-footnote>
+
+<blog-footnote key="turing-equivalence">McCulloch and Pitts did not actually prove this in their paper, however, it is not uncommon to hear people say that McCulloch Pitts nets were shown to be equivalent to Turing Machines. This is simply not true, but gets repeated anyway. In fact, McCulloch Pitts networks are equivalent to a different, simpler model of computation called a <a href="https://en.wikipedia.org/wiki/Finite-state_machine?oldformat=true">finite state machine</a>.</blog-footnote>
+
+</blog-footnotes>
+
+<blog-appendix>
+
+<blog-appendix-item key="code-impl" title="Code Implementations">
+<p>Implementation of long-multiplication and palindrome checker in Python.</p>
+
+<blog-code language="python">def long_multiplication(x, y):
+    # Extract individual digits from each number
+    x_digits, y_digits = [], []
+    for i, num in enumerate([x, y]):
+        while num > 0:
+            digit = num % 10
+            if i == 0:
+                x_digits.append(digit)
+            else:
+                y_digits.append(digit)
+            num //= 10
+
+    # Multiply digits by accumulating partial products
+    partial_prod = 0
+    for i, x_digit in enumerate(x_digits):
+        for j, y_digit in enumerate(y_digits):
+            # Use powers of ten to shift left
+            small_product = (x_digit * y_digit) * (10 ** i) * (10 ** j)
+            partial_prod += small_product
+
+    return partial_prod
+
+def is_palindrome(sequence):
+    return sequence == sequence[::-1]</blog-code>
+</blog-appendix-item>
+
+<blog-appendix-item key="turing-formalism" title="Turing Machine Formalism">
+<p>The contemporary formal definition of a Turing Machine is a <blog-math>7</blog-math>-tuple <blog-math>M = (Q, \Gamma, b, \Sigma, \delta, q_0, F)</blog-math></p>
+
+<p><blog-math>\Gamma</blog-math> is a finite, non=empty set of tape alphabet symbols.<br>
+<blog-math>b \in \Gamma</blog-math> is the blank symbol.<br>
+<blog-math>\Sigma \subseteq \Gamma \setminus \{b\}</blog-math> is the set of input symbols.<br>
+<blog-math>Q</blog-math> is a finite, non-empty set of states.<br>
+<blog-math>q_0 \in Q</blog-math> is the initial state.<br>
+<blog-math>F \subseteq Q</blog-math> is the set of final states or accepting states.<br>
+<blog-math>\delta : (Q \setminus F) \rightarrow Q \times \Gamma \times \{L, R\}</blog-math> is the transition function</p>
+</blog-appendix-item>
+
+<blog-appendix-item key="heaviside" title="Heaviside Function">
+<p>The Heaviside function, named after the British mathematician Oliver Heaviside, is the following</p>
+
+<blog-math block>H(x) = \begin{cases} 1, x\geq 0 \\ 0, x < 0 \end{cases}</blog-math>
+</blog-appendix-item>
+
+</blog-appendix>
+
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+/**
+ * blog-math component styles
+ * LaTeX equation rendering
+ */
+
+blog-math {
+  display: inline;
+}
+
+blog-math.blog-math-block {
+  display: block;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+
+blog-math.blog-math-inline {
+  display: inline;
+}
+
+/* Error display */
+.blog-math-error {
+  color: #c0392b;
+  font-family: var(--blog-font-code);
+  font-size: 0.9em;
+  background: rgba(192, 57, 43, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* KaTeX overrides */
+.katex .texttt {
+  font-family: var(--blog-font-code) !important;
+}
+
+blog-math.blog-math-block .katex-display {
+  margin: 0;
+}

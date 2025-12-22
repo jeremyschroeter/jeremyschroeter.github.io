@@ -1,0 +1,73 @@
+/**
+ * Blog Footnotes Styles
+ * Styling for footnotes container, items, and references
+ */
+
+/* ===== Footnotes Container ===== */
+blog-footnotes {
+  display: block;
+  margin-top: 3em;
+}
+
+.blog-footnotes-section {
+  padding-top: 1.5em;
+}
+
+.blog-footnotes-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0 0 1em;
+  color: var(--blog-text);
+}
+
+/* ===== Footnotes List ===== */
+.blog-footnotes-list {
+  font-size: 0.9em;
+  line-height: 1.6;
+  color: var(--blog-text);
+  padding-left: 1.5em;
+  margin: 0;
+}
+
+.blog-footnote-item {
+  margin-bottom: 0.75em;
+}
+
+.blog-footnote-content {
+  /* Inline content */
+}
+
+.blog-footnote-backlink {
+  color: var(--blog-text-muted, #666);
+  text-decoration: none;
+  margin-left: 0.5em;
+}
+
+.blog-footnote-backlink:hover {
+  text-decoration: underline;
+}
+
+/* ===== Inline Reference (superscript number) ===== */
+blog-fn-ref {
+  display: inline;
+}
+
+.blog-fn-ref-marker {
+  line-height: 0;
+}
+
+.blog-fn-ref-marker a {
+  font-size: 0.75em;
+  text-decoration: none;
+  color: var(--blog-text);
+  vertical-align: super;
+}
+
+.blog-fn-ref-marker a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Hide original footnote elements ===== */
+blog-footnote {
+  display: none;
+}

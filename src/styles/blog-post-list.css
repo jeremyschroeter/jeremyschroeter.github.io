@@ -1,0 +1,43 @@
+/**
+ * Blog Post List Styles
+ */
+
+blog-post-list {
+  display: block;
+}
+
+.blog-post-item {
+  margin-bottom: 1.5em;
+}
+
+.blog-post-item .post-title {
+  display: inline-block;
+  font-weight: bold;
+  margin-bottom: 0;
+  font-size: 22px;
+}
+
+.blog-post-item .post-title a {
+  text-decoration: none;
+  color: var(--blog-text);
+}
+
+.blog-post-item .post-title a:hover {
+  text-decoration: underline;
+}
+
+.blog-post-item .post-date {
+  text-transform: uppercase;
+  color: var(--blog-text-semi);
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.blog-post-item .post-subtitle {
+  font-size: 16px;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 1.5em;
+}

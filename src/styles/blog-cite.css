@@ -1,0 +1,46 @@
+/**
+ * blog-cite (citation) component styles
+ */
+
+/* Inline citation link */
+blog-cite {
+  display: inline;
+}
+
+.blog-cite-link {
+  color: var(--blog-text);
+  text-decoration: none;
+}
+
+.blog-cite-link:hover {
+  text-decoration: underline;
+}
+
+/* Bibliography section */
+.blog-bibliography {
+  margin-top: 3em;
+  padding-top: 1.5em;
+}
+
+.blog-bibliography-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0 0 1em;
+  color: var(--blog-text);
+}
+
+.blog-bibliography ol.bibliography {
+  padding-left: 1.5em;
+  font-size: 13px;
+  line-height: 1.5em;
+  color: var(--blog-text-semi);
+  margin: 0;
+}
+
+.blog-bibliography ol.bibliography li {
+  margin-bottom: 0.75em;
+}
+
+.blog-bibliography ol.bibliography li em {
+  font-style: italic;
+}

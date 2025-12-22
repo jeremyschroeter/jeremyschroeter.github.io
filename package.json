@@ -1,0 +1,26 @@
+{
+  "name": "blog-static",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Personal blog with Web Components",
+  "main": "dist/blog-components.js",
+  "scripts": {
+    "build": "node scripts/generate-posts-json.js && rollup -c",
+    "build:posts": "node scripts/generate-posts-json.js",
+    "dev": "rollup -c -w",
+    "serve": "python3 -m http.server 8000"
+  },
+  "author": "Jeremy Schroeter",
+  "license": "MIT",
+  "dependencies": {
+    "katex": "^0.16.11"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "bibtex-parse-js": "^0.0.24",
+    "prismjs": "^1.29.0",
+    "rollup": "^4.28.0",
+    "rollup-plugin-postcss": "^4.0.2"
+  }
+}

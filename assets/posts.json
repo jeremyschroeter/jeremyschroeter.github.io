@@ -1,0 +1,14 @@
+[
+  {
+    "url": "/posts/kmeans-gmm.html",
+    "title": "<blog-math>K</blog-math>-Means and Gaussian Mixture Models",
+    "subtitle": "<blog-math>K</blog-math>-means and Gaussian Mixtures are popular and effective clustering techniques. In this post I introduce the problem of clustering and motivate their use.",
+    "date": "2024-04-15"
+  },
+  {
+    "url": "/posts/mle-intro.html",
+    "title": "An Introduction to Maximum Likelihood Estimation",
+    "subtitle": "Maximum likelihood estimation is a fundamental technique in statistics. Here I give an introduction to the topic, and lay the groundwork for future posts covering its uses and extensions.",
+    "date": "2024-03-28"
+  }
+]

@@ -1,0 +1,45 @@
+/**
+ * blog-figure component styles
+ */
+
+blog-figure {
+  display: block;
+  border-top: 1px solid hsla(0, 0%, 0%, 0.2);
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.2);
+  padding: 20px 0;
+  margin: 1.5em 0;
+}
+
+blog-figure img {
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+}
+
+blog-figure figcaption {
+  padding-top: 15px;
+  display: block;
+  font-size: 13px;
+  line-height: 1.4em;
+  color: var(--blog-text);
+}
+
+blog-figure .blog-figure-number {
+  font-weight: bold;
+}
+
+/* Outset variant for wider figures */
+blog-figure.outset {
+  width: 115%;
+  max-width: none;
+  margin-left: -7.5%;
+  margin-right: -7.5%;
+}
+
+@media screen and (max-width: 700px) {
+  blog-figure.outset {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}

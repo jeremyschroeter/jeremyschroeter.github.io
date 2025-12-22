@@ -1,0 +1,78 @@
+/**
+ * Blog Appendix Styles
+ * Styling for appendix container, items, and references
+ */
+
+/* ===== Appendix Container ===== */
+blog-appendix {
+  display: block;
+  margin-top: 3em;
+}
+
+.blog-appendix-section {
+  padding-top: 1.5em;
+}
+
+.blog-appendix-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0 0 1em;
+  color: var(--blog-text);
+}
+
+/* ===== Appendix Items ===== */
+.blog-appendix-items {
+  margin-top: 1em;
+}
+
+.blog-appendix-item-rendered {
+  margin-bottom: 2em;
+  padding-top: 1em;
+  border-top: 1px dashed #ddd;
+}
+
+.blog-appendix-item-rendered:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.blog-appendix-item-title {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--blog-text);
+  margin: 0 0 0.75em;
+}
+
+.blog-appendix-item-content {
+  line-height: 1.7;
+  color: var(--blog-text);
+}
+
+.blog-appendix-item-content p {
+  margin: 0.75em 0;
+}
+
+.blog-appendix-item-content blog-math.blog-math-block {
+  display: block;
+  margin: 1em 0;
+}
+
+/* ===== Appendix Ref (inline reference) ===== */
+blog-appendix-ref {
+  display: inline;
+}
+
+.blog-appendix-ref-link {
+  color: var(--blog-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.blog-appendix-ref-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== Hide original appendix-item elements ===== */
+blog-appendix-item {
+  display: none;
+}
