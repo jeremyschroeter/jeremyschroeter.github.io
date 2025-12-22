@@ -1,8 +1,8 @@
 [
   {
     "url": "/posts/kmeans-gmm.html",
-    "title": "<blog-math>K</blog-math>-Means and Gaussian Mixture Models",
-    "subtitle": "<blog-math>K</blog-math>-means and Gaussian Mixtures are popular and effective clustering techniques. In this post I introduce the problem of clustering and motivate their use.",
+    "title": "K-Means and Gaussian Mixture Models",
+    "subtitle": "K-means and Gaussian Mixtures are popular and effective clustering techniques. In this post I introduce the problem of clustering and motivate their use.",
     "date": "2024-04-15"
   },
   {
