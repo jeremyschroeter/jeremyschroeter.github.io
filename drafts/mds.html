@@ -14,20 +14,335 @@
     <blog-nav></blog-nav>
     <blog-header
       title="Multidimensional Scaling and Isomap"
-      subtitle="I discuss MDS, a fundamental dimensionality reduction algorithm and its nonlinear extension in the Isomap algorithm."
+      subtitle="I discuss MDS, a dimensionality reduction technique, and its nonlinear extension in the Isomap algorithm."
       date="2025-12-21">
     </blog-header>
     <div class='wrap article'>
 
-<p>Multidimensional scaling (MDS) is one of the most common and simplest forms of dimensionality reduction. One reason why it is so simple is because the problem statement is very intuitive.</p>
+<p>
+    Multidimensional scaling (MDS) is one of the most common and simplest forms of dimensionality reduction.
+    One reason for its simplicity is that MDS formulates dimensionality reduction very intuitively.
+</p>
 
-<h2>The Problem Statement</h2>
+<h2>
+    The Problem Statement
+</h2>
 
-<p>Suppose we are given an <blog-math>n \times n</blog-math> matrix <blog-math>\mathbf{D}</blog-math> containing distances between <blog-math>n</blog-math> points.</p>
+<p>
+    Suppose we have some dataset <blog-math>\mathcal{X}</blog-math> consisting of <blog-math>n</blog-math> points in <blog-math>q</blog-math> dimensions.
+    <blog-math block>
+        \mathcal{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_n\} \qquad \mathbf{x}_i \in \mathbb{R}^q
+    </blog-math>
+    We construct a distance matrix <blog-math>\mathbf{D}^{(\mathcal{X})}</blog-math> consisting of the Euclidean distances between every pair of points in <blog-math>\mathcal{X}</blog-math>.
+    <blog-math block>
+        D^{(\mathcal{X})}_{ij} = \Vert\mathbf{x}_i - \mathbf{x}_j\Vert_2
+    </blog-math>
+    The goal of multidimensional scaling is to find a new set of lower-dimensional coordinates <blog-math>\mathcal{Y}</blog-math> that preserve these pairwise distances.
+    <blog-math block>
+        \mathcal{Y} = \{\mathbf{y}_1, \dots, \mathbf{y}_n\} \qquad \mathbf{y}_i \in \mathbb{R}^p, \quad p < q
+    </blog-math>
+    More precisely, we seek to minimize the discrepancy between the original distances and the distances in the embedding, captured by the <em>stress</em> function:
+    <blog-math block>
+        \min_{\mathcal{Y}} \sum_{i < j} \left( D^{(\mathcal{X})}_{ij} - D^{(\mathcal{Y})}_{ij} \right)^2
+    </blog-math>
+    What is this saying?
+    Imagine you're blindfolded in a room with several people.
+    Someone tells you the distance between every pair of people, but not their directions or absolute positions.
+    Could you sketch a map of where everyone is standing?
+    MDS does exactly this: it reconstructs a spatial arrangement from distance information alone.
+    The key insight is that pairwise distances contain enough information to recover the underlying geometry, up to rotation and translation.
+</p>
 
-<blog-math block>D_{ij} = \Vert \mathbf{x}_i - \mathbf{x}_j\Vert \qquad \mathbf{x} \in \mathbb{R}^p</blog-math>
+<h2>
+    From Distances to Inner Products
+</h2>
 
-    </div>
+<p>
+    How do we actually solve this?
+    The key is recognizing a relationship between distances and <em>inner products</em>.
+    The inner product (or dot product) between two vectors <blog-math>\mathbf{x}_i</blog-math> and <blog-math>\mathbf{x}_j</blog-math> is written <blog-math>\mathbf{x}_i^\top\mathbf{x}_j</blog-math> and computed by multiplying corresponding coordinates and summing:
+    <blog-math block>
+        \mathbf{x}_i^\top\mathbf{x}_j = \sum_{k=1}^{q} x_{ik} \cdot x_{jk}
+    </blog-math>
+    Inner products encode geometric information: they tell us about both the lengths of vectors (when <blog-math>i = j</blog-math>, we get <blog-math>\mathbf{x}_i^\top\mathbf{x}_i = \Vert\mathbf{x}_i\Vert^2</blog-math>) and the angles between them.
+</p>
+
+<p>
+    Now, let's connect distances to inner products.
+    Recall that the squared Euclidean distance is the sum of squared differences:
+    <blog-math block>
+        D_{ij}^2 = \Vert\mathbf{x}_i - \mathbf{x}_j\Vert_2^2 = \sum_{k=1}^{q} (x_{ik} - x_{jk})^2
+    </blog-math>
+    Expanding the square <blog-math>(x_{ik} - x_{jk})^2 = x_{ik}^2 - 2x_{ik}x_{jk} + x_{jk}^2</blog-math> and summing over <blog-math>k</blog-math>, we get:
+    <blog-math block>
+        D_{ij}^2 = \underbrace{\sum_k x_{ik}^2}_{\Vert\mathbf{x}_i\Vert^2} - 2\underbrace{\sum_k x_{ik}x_{jk}}_{\mathbf{x}_i^\top\mathbf{x}_j} + \underbrace{\sum_k x_{jk}^2}_{\Vert\mathbf{x}_j\Vert^2} = \Vert\mathbf{x}_i\Vert^2 + \Vert\mathbf{x}_j\Vert^2 - 2\mathbf{x}_i^\top\mathbf{x}_j
+    </blog-math>
+    This is the key equation: squared distances are determined by inner products.
+    If we can recover the inner products from the distances, we can then extract coordinates from those inner products (we'll see how shortly).
+</p>
+
+<h2>
+    The Gram Matrix
+</h2>
+
+<p>
+    Let's organize all the inner products into a single matrix.
+    The <em>Gram matrix</em> <blog-math>\mathbf{B}</blog-math> is an <blog-math>n \times n</blog-math> matrix where entry <blog-math>B_{ij}</blog-math> contains the inner product between points <blog-math>i</blog-math> and <blog-math>j</blog-math>:
+    <blog-math block>
+        B_{ij} = \mathbf{x}_i^\top\mathbf{x}_j
+    </blog-math>
+    The diagonal entries <blog-math>B_{ii} = \Vert\mathbf{x}_i\Vert^2</blog-math> are the squared lengths of each point.
+    The off-diagonal entries capture relationships between different points.
+    Our goal is to recover <blog-math>\mathbf{B}</blog-math> from the distance matrix <blog-math>\mathbf{D}</blog-math>.
+</p>
+
+<h2>
+    Centering the Data
+</h2>
+
+<p>
+    To make the derivation work, we'll assume the data is <em>centered</em>: the origin sits at the centroid of all points.
+    <blog-math block>
+        \sum_{i=1}^{n} \mathbf{x}_i = \mathbf{0}
+    </blog-math>
+    This is without loss of generality — centering doesn't change distances between points, it just shifts where we place the origin.
+    If our data isn't centered, we can always subtract the mean from each point first.
+</p>
+
+<h2>
+    The Double Centering Formula
+</h2>
+
+<p>
+    Now let's derive the formula that recovers <blog-math>\mathbf{B}</blog-math> from <blog-math>\mathbf{D}</blog-math>, working entirely in matrix notation.
+    First, let's express the squared distance matrix in terms of the Gram matrix.
+    Let <blog-math>\mathbf{b} = \text{diag}(\mathbf{B})</blog-math> be the vector of diagonal entries of <blog-math>\mathbf{B}</blog-math>, i.e., <blog-math>b_i = B_{ii} = \Vert\mathbf{x}_i\Vert^2</blog-math>.
+    Our key equation <blog-math>D_{ij}^2 = \Vert\mathbf{x}_i\Vert^2 + \Vert\mathbf{x}_j\Vert^2 - 2B_{ij}</blog-math> can be written in matrix form as:
+    <blog-math block>
+        \mathbf{D}^{(2)} = \mathbf{b}\mathbf{1}^\top + \mathbf{1}\mathbf{b}^\top - 2\mathbf{B}
+    </blog-math>
+    where <blog-math>\mathbf{1}</blog-math> is a column vector of ones.
+    The first term <blog-math>\mathbf{b}\mathbf{1}^\top</blog-math> broadcasts <blog-math>\Vert\mathbf{x}_i\Vert^2</blog-math> across each row; the second term <blog-math>\mathbf{1}\mathbf{b}^\top</blog-math> broadcasts <blog-math>\Vert\mathbf{x}_j\Vert^2</blog-math> down each column.
+</p>
+
+<p>
+    Now introduce the <em>centering matrix</em>:
+    <blog-math block>
+        \mathbf{H} = \mathbf{I} - \frac{1}{n}\mathbf{1}\mathbf{1}^\top
+    </blog-math>
+    This matrix has a key property: it annihilates the ones vector.
+    <blog-math block>
+        \mathbf{H}\mathbf{1} = \mathbf{1} - \frac{1}{n}\mathbf{1}\mathbf{1}^\top\mathbf{1} = \mathbf{1} - \frac{1}{n}\mathbf{1} \cdot n = \mathbf{1} - \mathbf{1} = \mathbf{0}
+    </blog-math>
+    Similarly, <blog-math>\mathbf{1}^\top\mathbf{H} = \mathbf{0}^\top</blog-math>.
+</p>
+
+<p>
+    Let's apply <blog-math>\mathbf{H}</blog-math> to both sides of our squared distance equation:
+    <blog-math block>
+    \begin{aligned}
+        \mathbf{H}\mathbf{D}^{(2)}\mathbf{H} &= \mathbf{H}\left(\mathbf{b}\mathbf{1}^\top + \mathbf{1}\mathbf{b}^\top - 2\mathbf{B}\right)\mathbf{H} \\[0.5em]
+        &= \mathbf{H}\mathbf{b}\underbrace{\mathbf{1}^\top\mathbf{H}}_{=\,\mathbf{0}^\top} + \underbrace{\mathbf{H}\mathbf{1}}_{=\,\mathbf{0}}\mathbf{b}^\top\mathbf{H} - 2\mathbf{H}\mathbf{B}\mathbf{H} \\[0.5em]
+        &= -2\mathbf{H}\mathbf{B}\mathbf{H}
+    \end{aligned}
+    </blog-math>
+    The norm terms vanish because <blog-math>\mathbf{H}</blog-math> kills any term involving <blog-math>\mathbf{1}</blog-math>.
+</p>
+
+<p>
+    Finally, recall that we assumed the data is centered: <blog-math>\sum_i \mathbf{x}_i = \mathbf{0}</blog-math>.
+    In matrix terms, if <blog-math>\mathbf{X}</blog-math> is the <blog-math>n \times q</blog-math> data matrix (rows are points), centering means <blog-math>\mathbf{1}^\top\mathbf{X} = \mathbf{0}^\top</blog-math>.
+    This implies <blog-math>\mathbf{H}\mathbf{X} = \mathbf{X}</blog-math> — centering an already-centered matrix does nothing.
+    Since <blog-math>\mathbf{B} = \mathbf{X}\mathbf{X}^\top</blog-math>:
+    <blog-math block>
+        \mathbf{H}\mathbf{B}\mathbf{H} = \mathbf{H}\mathbf{X}\mathbf{X}^\top\mathbf{H} = (\mathbf{H}\mathbf{X})(\mathbf{H}\mathbf{X})^\top = \mathbf{X}\mathbf{X}^\top = \mathbf{B}
+    </blog-math>
+</p>
+
+<p>
+    Putting it together:
+    <blog-math block>
+        \mathbf{H}\mathbf{D}^{(2)}\mathbf{H} = -2\mathbf{B}
+    </blog-math>
+    Solving for <blog-math>\mathbf{B}</blog-math> gives us the <em>double centering</em> formula:
+    <blog-math block>
+        \mathbf{B} = -\frac{1}{2}\mathbf{H}\mathbf{D}^{(2)}\mathbf{H}
+    </blog-math>
+    The name makes sense: we apply <blog-math>\mathbf{H}</blog-math> on both sides, centering rows and columns simultaneously.
+    We've recovered the Gram matrix from squared distances.
+</p>
+
+<h2>
+    From Inner Products to Coordinates
+</h2>
+
+<p>
+    We now have the Gram matrix <blog-math>\mathbf{B}</blog-math>.
+    The final step is to extract coordinates from it.
+    Recall that <blog-math>\mathbf{B} = \mathbf{X}\mathbf{X}^\top</blog-math> where <blog-math>\mathbf{X}</blog-math> is the <blog-math>n \times q</blog-math> data matrix (each row is one point).
+    We want to find some coordinate matrix <blog-math>\mathbf{Y}</blog-math> such that <blog-math>\mathbf{Y}\mathbf{Y}^\top = \mathbf{B}</blog-math>.
+    In other words, we want to "factor" the Gram matrix back into coordinates.
+</p>
+
+<p>
+    The tool for this is the <em>eigendecomposition</em>.
+    Recall that an eigenvector <blog-math>\mathbf{v}</blog-math> of a matrix <blog-math>\mathbf{B}</blog-math> satisfies <blog-math>\mathbf{B}\mathbf{v} = \lambda\mathbf{v}</blog-math> for some scalar <blog-math>\lambda</blog-math> (the eigenvalue).
+    Symmetric matrices have a nice property: they have <blog-math>n</blog-math> real eigenvalues, and their eigenvectors can be chosen to be orthonormal (perpendicular and unit length).
+    If we stack these eigenvectors as columns of a matrix <blog-math>\mathbf{V}</blog-math>, we get:
+    <blog-math block>
+        \mathbf{B} = \mathbf{V}\boldsymbol{\Lambda}\mathbf{V}^\top
+    </blog-math>
+    where <blog-math>\boldsymbol{\Lambda}</blog-math> is a diagonal matrix with eigenvalues on the diagonal.
+    Because the eigenvectors are orthonormal, <blog-math>\mathbf{V}</blog-math> is an <em>orthogonal matrix</em>: its transpose equals its inverse (<blog-math>\mathbf{V}^\top\mathbf{V} = \mathbf{I}</blog-math>).
+</p>
+
+<p>
+    The Gram matrix <blog-math>\mathbf{B}</blog-math> has an additional property: it is <em>positive semidefinite</em>, meaning all its eigenvalues are non-negative.
+    Intuitively, this is because <blog-math>\mathbf{B}</blog-math> encodes squared lengths and angles — there are no "negative lengths."
+    More precisely, for any vector <blog-math>\mathbf{z}</blog-math>:
+    <blog-math block>
+        \mathbf{z}^\top\mathbf{B}\mathbf{z} = \mathbf{z}^\top\mathbf{X}\mathbf{X}^\top\mathbf{z} = \Vert\mathbf{X}^\top\mathbf{z}\Vert^2 \geq 0
+    </blog-math>
+    The quantity <blog-math>\mathbf{z}^\top\mathbf{B}\mathbf{z}</blog-math> is called a <em>quadratic form</em>.
+    If we plug in an eigenvector <blog-math>\mathbf{v}_i</blog-math>, we get <blog-math>\mathbf{v}_i^\top\mathbf{B}\mathbf{v}_i = \lambda_i</blog-math>.
+    Since this must be non-negative, each eigenvalue <blog-math>\lambda_i \geq 0</blog-math>.
+</p>
+
+<p>
+    Because the eigenvalues are non-negative, we can take their square roots.
+    Define <blog-math>\boldsymbol{\Lambda}^{1/2}</blog-math> as the diagonal matrix with <blog-math>\sqrt{\lambda_i}</blog-math> on the diagonal.
+    Now we can factor <blog-math>\mathbf{B}</blog-math>:
+    <blog-math block>
+        \mathbf{B} = \mathbf{V}\boldsymbol{\Lambda}\mathbf{V}^\top = \mathbf{V}\boldsymbol{\Lambda}^{1/2}\boldsymbol{\Lambda}^{1/2}\mathbf{V}^\top = \left(\mathbf{V}\boldsymbol{\Lambda}^{1/2}\right)\left(\mathbf{V}\boldsymbol{\Lambda}^{1/2}\right)^\top
+    </blog-math>
+    The last step uses the fact that <blog-math>\boldsymbol{\Lambda}^{1/2}</blog-math> is diagonal (so its transpose is itself) and <blog-math>(\mathbf{A}\mathbf{B})^\top = \mathbf{B}^\top\mathbf{A}^\top</blog-math>.
+</p>
+
+<p>
+    So if we define <blog-math>\mathbf{Y} = \mathbf{V}\boldsymbol{\Lambda}^{1/2}</blog-math>, then <blog-math>\mathbf{Y}\mathbf{Y}^\top = \mathbf{B}</blog-math>.
+    Each row of <blog-math>\mathbf{Y}</blog-math> gives coordinates for one data point.
+    We've successfully extracted coordinates from the Gram matrix.
+</p>
+
+<h2>
+    Dimensionality Reduction
+</h2>
+
+<p>
+    So far we've recovered coordinates that reproduce the Gram matrix exactly.
+    But the whole point of MDS is <em>dimensionality reduction</em> — we want to represent our data in fewer dimensions.
+</p>
+
+<p>
+    This is where eigenvalues become useful.
+    Each eigenvalue <blog-math>\lambda_i</blog-math> measures how much "spread" or variance the data has along its corresponding eigenvector direction.
+    Large eigenvalues correspond to directions where points are far apart; small eigenvalues correspond to directions where points are close together.
+    If an eigenvalue is zero (or very small), the data barely varies in that direction — we can ignore it without losing much information.
+</p>
+
+<p>
+    Sort the eigenvalues in decreasing order: <blog-math>\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_n</blog-math>.
+    To reduce to <blog-math>p</blog-math> dimensions, keep only the top <blog-math>p</blog-math> eigenvalues and their corresponding eigenvectors:
+    <blog-math block>
+        \mathbf{Y}_p = \mathbf{V}_p\boldsymbol{\Lambda}_p^{1/2}
+    </blog-math>
+    Here <blog-math>\mathbf{V}_p</blog-math> is an <blog-math>n \times p</blog-math> matrix containing the first <blog-math>p</blog-math> eigenvectors as columns, and <blog-math>\boldsymbol{\Lambda}_p</blog-math> is a <blog-math>p \times p</blog-math> diagonal matrix with the first <blog-math>p</blog-math> eigenvalues.
+</p>
+
+<p>
+    The result <blog-math>\mathbf{Y}_p</blog-math> is an <blog-math>n \times p</blog-math> matrix — each row gives a <blog-math>p</blog-math>-dimensional coordinate for one point.
+    These coordinates preserve the original pairwise distances as well as possible in <blog-math>p</blog-math> dimensions.
+    The sum of the discarded eigenvalues measures the approximation error: how much of the geometry couldn't be captured in <blog-math>p</blog-math> dimensions.
+</p>
+
+<h2>
+    The MDS Algorithm
+</h2>
+
+<p>
+    Putting it all together, here is classical MDS:
+</p>
+
+<ol>
+    <li>Compute the squared distance matrix <blog-math>\mathbf{D}^{(2)}</blog-math> from the data.</li>
+    <li>Construct the centering matrix <blog-math>\mathbf{H} = \mathbf{I} - \frac{1}{n}\mathbf{1}\mathbf{1}^\top</blog-math>.</li>
+    <li>Compute the Gram matrix via double centering: <blog-math>\mathbf{B} = -\frac{1}{2}\mathbf{H}\mathbf{D}^{(2)}\mathbf{H}</blog-math>.</li>
+    <li>Eigendecompose <blog-math>\mathbf{B} = \mathbf{V}\boldsymbol{\Lambda}\mathbf{V}^\top</blog-math>, sorted by decreasing eigenvalue.</li>
+    <li>Extract the <blog-math>p</blog-math>-dimensional embedding: <blog-math>\mathbf{Y}_p = \mathbf{V}_p\boldsymbol{\Lambda}_p^{1/2}</blog-math>.</li>
+</ol>
+
+<p>
+    If the original distances came from Euclidean data and <blog-math>p</blog-math> equals the true dimensionality, MDS recovers the original coordinates exactly (up to rotation and reflection).
+    If <blog-math>p</blog-math> is smaller, MDS finds the best <blog-math>p</blog-math>-dimensional approximation.
+</p>
+
+<h2>
+    Isomap
+</h2>
+
+<p>
+    Classical MDS works well when the data lies in (or near) a flat, linear subspace.
+    But what if the data lies on a curved surface — a <em>manifold</em>?
+</p>
+
+<p>
+    Consider the "Swiss roll": points sampled from a 2D rectangle that has been rolled up into 3D.
+    The intrinsic structure is 2-dimensional, but classical MDS will fail to recover it.
+    The problem is that Euclidean distance measures "as the crow flies" — it cuts through empty space, ignoring the manifold's geometry.
+    Two points on opposite sides of the roll may be close in Euclidean distance but far apart along the surface.
+    What we need is the <em>geodesic distance</em>: the shortest path along the manifold.
+</p>
+
+<p>
+    Isomap (Isometric Feature Mapping) has a simple idea: approximate geodesic distances, then run MDS.
+    The key observation is that for nearby points, Euclidean distance <blog-math>\approx</blog-math> geodesic distance.
+    So we can approximate long-range geodesics by summing short Euclidean hops along the manifold.
+</p>
+
+<p>
+    <strong>Step 1: Build a neighborhood graph.</strong>
+    Construct a weighted graph <blog-math>G = (V, E)</blog-math> where each point is a vertex.
+    Connect point <blog-math>i</blog-math> to point <blog-math>j</blog-math> if <blog-math>j</blog-math> is among the <blog-math>k</blog-math> nearest neighbors of <blog-math>i</blog-math>.
+    Set the edge weight to the Euclidean distance:
+    <blog-math block>
+        w_{ij} = \Vert\mathbf{x}_i - \mathbf{x}_j\Vert_2
+    </blog-math>
+    The parameter <blog-math>k</blog-math> controls locality: small <blog-math>k</blog-math> means only very close points are connected.
+</p>
+
+<p>
+    <strong>Step 2: Compute shortest paths.</strong>
+    For every pair of points, compute the shortest path distance through the graph.
+    Using Dijkstra's algorithm from each vertex (or Floyd-Warshall for all pairs), we obtain:
+    <blog-math block>
+        D^{(\text{geo})}_{ij} = \min_{\text{path } i \to j} \sum_{\text{edges}} w
+    </blog-math>
+    This approximates the true geodesic distance along the manifold.
+    The approximation improves as the data becomes denser (more points sampling the manifold).
+</p>
+
+<p>
+    <strong>Step 3: Apply MDS.</strong>
+    Run classical MDS on <blog-math>\mathbf{D}^{(\text{geo})}</blog-math> instead of the Euclidean distance matrix:
+    <blog-math block>
+        \mathbf{B} = -\frac{1}{2}\mathbf{H}\left(\mathbf{D}^{(\text{geo})}\right)^{(2)}\mathbf{H}
+    </blog-math>
+    Then eigendecompose <blog-math>\mathbf{B}</blog-math> and extract coordinates as before.
+    The result is a low-dimensional embedding that preserves geodesic distances.
+</p>
+
+<p>
+    The choice of <blog-math>k</blog-math> involves a trade-off.
+    If <blog-math>k</blog-math> is too small, the graph may be disconnected — some pairs of points will have infinite geodesic distance, and MDS will fail.
+    If <blog-math>k</blog-math> is too large, edges will "short-circuit" across folds in the manifold, connecting points that are close in Euclidean distance but far along the surface.
+    In practice, choose <blog-math>k</blog-math> large enough for connectivity but small enough to respect the manifold's local geometry.
+</p>
+
+<p>
+    For the Swiss roll, Isomap successfully "unrolls" the manifold, recovering the original 2D rectangle.
+    Points that were neighbors on the flat sheet remain neighbors in the embedding; points that were far apart on the sheet stay far apart, even if the rolling brought them close in 3D.
+</p>
+
 </div>
 </body>
 </html>

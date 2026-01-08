@@ -3242,10 +3242,28 @@ var BlogComponents = (function (exports) {
     }
 
     /**
+     * Format authors with "et al." for 3+ authors
+     */
+    static formatAuthors(authorString) {
+      if (!authorString) return 'Unknown';
+
+      // BibTeX uses "and" to separate authors
+      const authors = authorString.split(/\s+and\s+/i).map(a => a.trim());
+
+      if (authors.length <= 2) {
+        // 1-2 authors: show all, join with " and "
+        return authors.join(' and ');
+      } else {
+        // 3+ authors: first author + et al.
+        return `${authors[0]} et al.`;
+      }
+    }
+
+    /**
      * Format a bibliography entry
      */
     static formatBibEntry(entry) {
-      const authors = entry.author || 'Unknown';
+      const authors = BlogCite.formatAuthors(entry.author);
       const year = entry.year || 'n.d.';
       const title = entry.title || 'Untitled';
       const venue = entry.journal || entry.booktitle || entry.publisher || '';

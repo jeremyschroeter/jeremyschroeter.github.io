@@ -1,0 +1,27 @@
+TY  - JOUR
+AU  - Zhang, Meng
+AU  - Pan, Xingjie
+AU  - Jung, Won
+AU  - Halpern, Aaron R.
+AU  - Eichhorn, Stephen W.
+AU  - Lei, Zhiyun
+AU  - Cohen, Limor
+AU  - Smith, Kimberly A.
+AU  - Tasic, Bosiljka
+AU  - Yao, Zizhen
+AU  - Zeng, Hongkui
+AU  - Zhuang, Xiaowei
+PY  - 2023
+DA  - 2023/12/01
+TI  - Molecularly defined and spatially resolved cell atlas of the whole mouse brain
+JO  - Nature
+SP  - 343
+EP  - 354
+VL  - 624
+IS  - 7991
+AB  - In mammalian brains, millions to billions of cells form complex interaction networks to enable a wide range of functions. The enormous diversity and intricate organization of cells have impeded our understanding of the molecular and cellular basis of brain function. Recent advances in spatially resolved single-cell transcriptomics have enabled systematic mapping of the spatial organization of molecularly defined cell types in complex tissues1–3, including several brain regions (for example, refs. 1–11). However, a comprehensive cell atlas of the whole brain is still missing. Here we imaged a panel of more than 1,100 genes in approximately 10 million cells across the entire adult mouse brains using multiplexed error-robust fluorescence in situ hybridization12 and performed spatially resolved, single-cell expression profiling at the whole-transcriptome scale by integrating multiplexed error-robust fluorescence in situ hybridization and single-cell RNA sequencing data. Using this approach, we generated a comprehensive cell atlas of more than 5,000 transcriptionally distinct cell clusters, belonging to more than 300 major cell types, in the whole mouse brain with high molecular and spatial resolution. Registration of this atlas to the mouse brain common coordinate framework allowed systematic quantifications of the cell-type composition and organization in individual brain regions. We further identified spatial modules characterized by distinct cell-type compositions and spatial gradients featuring gradual changes of cells. Finally, this high-resolution spatial map of cells, each with a transcriptome-wide expression profile, allowed us to infer cell-type-specific interactions between hundreds of cell-type pairs and predict molecular (ligand–receptor) basis and functional implications of these cell–cell interactions. These results provide rich insights into the molecular and cellular architecture of the brain and a foundation for functional investigations of neural circuits and their dysfunction in health and disease.
+SN  - 1476-4687
+UR  - https://doi.org/10.1038/s41586-023-06808-9
+DO  - 10.1038/s41586-023-06808-9
+ID  - Zhang2023
+ER  - 
