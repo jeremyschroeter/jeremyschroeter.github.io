@@ -21890,7 +21890,13 @@ var BlogComponents = (function (exports) {
           throwOnError: false,
           trust: false,
           strict: 'warn',
-          output: 'html'
+          output: 'html',
+          macros: {
+            '\\bs': '\\boldsymbol',
+            '\\R': '\\mathbb{R}',
+            '\\E': '\\mathbb{E}',
+            '\\Rn': '\\mathbb{R}^n'
+          }
         });
 
         // Clear and set new content
@@ -22252,7 +22258,7 @@ var BlogComponents = (function (exports) {
   var css_248z$3 = "blog-cite{display:inline}.blog-cite-link{color:var(--blog-text);text-decoration:none}.blog-cite-link:hover{text-decoration:underline}.blog-bibliography{margin-top:3em;padding-top:1.5em}.blog-bibliography-title{color:var(--blog-text);font-size:1.3em;font-weight:600;margin:0 0 1em}.blog-bibliography ol.bibliography{color:var(--blog-text-semi);font-size:13px;line-height:1.5em;margin:0;padding-left:1.5em}.blog-bibliography ol.bibliography li{margin-bottom:.75em}.blog-bibliography ol.bibliography li em{font-style:italic}";
   styleInject(css_248z$3);
 
-  var css_248z$2 = "blog-math{display:inline}blog-math.blog-math-block{display:block;margin:1.5em 0;overflow-x:auto;overflow-y:hidden;text-align:center}blog-math.blog-math-inline{display:inline}.blog-math-error{background:rgba(192,57,43,.1);border-radius:3px;color:#c0392b;font-family:var(--blog-font-code);font-size:.9em;padding:.2em .4em}.katex .texttt{font-family:var(--blog-font-code)!important}blog-math.blog-math-block .katex-display{margin:0}";
+  var css_248z$2 = "blog-math{display:inline}blog-math.blog-math-block{display:block;margin:1.5em 0;overflow:visible;text-align:center}blog-math.blog-math-inline{display:inline}.blog-math-error{background:rgba(192,57,43,.1);border-radius:3px;color:#c0392b;font-family:var(--blog-font-code);font-size:.9em;padding:.2em .4em}.katex .texttt{font-family:var(--blog-font-code)!important}blog-math.blog-math-block .katex-display{margin:0}";
   styleInject(css_248z$2);
 
   var css_248z$1 = "blog-appendix{display:block;margin-top:3em}.blog-appendix-section{padding-top:1.5em}.blog-appendix-title{color:var(--blog-text);font-size:1.3em;font-weight:600;margin:0 0 1em}.blog-appendix-items{margin-top:1em}.blog-appendix-item-rendered{border-top:1px dashed #ddd;margin-bottom:2em;padding-top:1em}.blog-appendix-item-rendered:first-child{border-top:none;padding-top:0}.blog-appendix-item-title{color:var(--blog-text);font-size:1.1em;font-weight:600;margin:0 0 .75em}.blog-appendix-item-content{color:var(--blog-text);line-height:1.7}.blog-appendix-item-content p{margin:.75em 0}.blog-appendix-item-content blog-math.blog-math-block{display:block;margin:1em 0}blog-appendix-ref{display:inline}.blog-appendix-ref-link{color:var(--blog-text);font-weight:500;text-decoration:none}.blog-appendix-ref-link:hover{text-decoration:underline}blog-appendix-item{display:none}";

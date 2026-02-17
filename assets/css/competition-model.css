@@ -1,0 +1,89 @@
+.demo-container {
+    padding: 20px 0;
+    margin: 20px 0;
+}
+.demo-row {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.phase-portrait {
+    flex: 1;
+    min-width: 350px;
+}
+.controls {
+    flex: 0 0 200px;
+}
+.control-group {
+    margin-bottom: 20px;
+}
+.control-group h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+}
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.slider-row label {
+    width: 40px;
+}
+.slider-row input[type="range"] {
+    flex: 1;
+    height: 6px;
+}
+.slider-row .value {
+    font-family: monospace;
+    font-size: 12px;
+    width: 35px;
+    text-align: right;
+}
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.checkbox-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+.instructions {
+    font-size: 13px;
+    color: #666;
+    margin-top: 10px;
+    text-align: center;
+}
+#competition-svg {
+    display: block;
+    margin: 0 auto;
+}
+.nullcline-n1 {
+    fill: none;
+    stroke: #457b9d;
+    stroke-width: 2;
+}
+.nullcline-n2 {
+    fill: none;
+    stroke: #e63946;
+    stroke-width: 2;
+}
+.trajectory {
+    fill: none;
+    stroke: #333;
+    stroke-width: 2;
+}
+.start-point {
+    fill: #333;
+    cursor: grab;
+}
+.start-point:active {
+    cursor: grabbing;
+}
+.current-point {
+    fill: #333;
+}

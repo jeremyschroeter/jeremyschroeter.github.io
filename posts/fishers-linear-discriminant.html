@@ -22,19 +22,19 @@
     </blog-header>
 <div class='wrap article'>
 <p>
-    Discriminant functions are a family of classification algorithms that directly assign datapoints <blog-math>\mathbf{x}_n</blog-math> to a class <blog-math>\mathcal{C}_k</blog-math>.
+    Discriminant functions are a family of classification algorithms that directly assign datapoints <blog-math>\boldsymbol{x}_n</blog-math> to a class <blog-math>\mathcal{C}_k</blog-math>.
     The simplest discriminant functions are linear, and divide the input space into regions corresponding to each class.
     The line described by the function is called the <i>decision boundary</i>.
     For example, given the linear discriminant function
     <blog-math block>
-        y(\mathbf{x}) = \mathbf{w}^\top\mathbf{x} + w_0
+        y(\boldsymbol{x}) = \boldsymbol{w}^\top\boldsymbol{x} + w_0
     </blog-math>
-    the input vector <blog-math>\mathbf{x}</blog-math> is assigned to class <blog-math>\mathcal{C}_1</blog-math> if <blog-math>y(\mathbf{x}) \geq 0</blog-math> and to class <blog-math>\mathcal{C}_2</blog-math> otherwise.
+    the input vector <blog-math>\boldsymbol{x}</blog-math> is assigned to class <blog-math>\mathcal{C}_1</blog-math> if <blog-math>y(\boldsymbol{x}) \geq 0</blog-math> and to class <blog-math>\mathcal{C}_2</blog-math> otherwise.
 </p>
 
 <blog-figure>
     <div id="problem-setup"></div>
-    <figcaption>Two classes of data. The decision boundary (solid line) separates the classes; points are classified based on which side they fall on. The dashed line shows the projection direction <blog-math>\mathbf{w}</blog-math>.</figcaption>
+    <figcaption>Two classes of data. The decision boundary (solid line) separates the classes; points are classified based on which side they fall on. The dashed line shows the projection direction <blog-math>\boldsymbol{w}</blog-math>.</figcaption>
 </blog-figure>
 
 <script>
@@ -168,30 +168,30 @@
 </script>
 
 <p>
-    How should we choose <blog-math>\mathbf{w}</blog-math> to correctly classify as many data points as possible?
-    Fisher's Linear Discriminant offers an intuitive solution: choose <blog-math>\mathbf{w}</blog-math> such that when the data is projected onto it, the two classes are maximally separated.
+    How should we choose <blog-math>\boldsymbol{w}</blog-math> to correctly classify as many data points as possible?
+    Fisher's Linear Discriminant offers an intuitive solution: choose <blog-math>\boldsymbol{w}</blog-math> such that when the data is projected onto it, the two classes are maximally separated.
 </p>
 
 <p>
     A natural starting point is to measure the separation between the projected class means. The class means are given by
     <blog-math block>
-        \mathbf{m}_1 = \frac{1}{|\mathcal{C}_1|}\sum_{n\in\mathcal{C}_1}\mathbf{x}_n \qquad \mathbf{m}_2 = \frac{1}{|\mathcal{C}_2|}\sum_{n\in\mathcal{C}_2}\mathbf{x}_n
+        \boldsymbol{m}_1 = \frac{1}{|\mathcal{C}_1|}\sum_{n\in\mathcal{C}_1}\boldsymbol{x}_n \qquad \boldsymbol{m}_2 = \frac{1}{|\mathcal{C}_2|}\sum_{n\in\mathcal{C}_2}\boldsymbol{x}_n
     </blog-math>
-    and the projected class means are the scalar quantities <blog-math>m_k = \mathbf{w}^\top\mathbf{m}_k</blog-math>.
+    and the projected class means are the scalar quantities <blog-math>m_k = \boldsymbol{w}^\top\boldsymbol{m}_k</blog-math>.
     To maximally separate the projected class means, we maximize
     <blog-math block>
-        m_2 - m_1 = \mathbf{w}^\top (\mathbf{m}_2 - \mathbf{m}_1)
+        m_2 - m_1 = \boldsymbol{w}^\top (\boldsymbol{m}_2 - \boldsymbol{m}_1)
     </blog-math>
-    This expression, however, is insufficiently constrained: we can make <blog-math>m_2 - m_1</blog-math> arbitrarily large simply by increasing the magnitude of <blog-math>\mathbf{w}</blog-math>.
-    One remedy is to add the constraint <blog-math>\|\mathbf{w}\|^2 = 1</blog-math>, but Fisher's approach handles this more elegantly.
+    This expression, however, is insufficiently constrained: we can make <blog-math>m_2 - m_1</blog-math> arbitrarily large simply by increasing the magnitude of <blog-math>\boldsymbol{w}</blog-math>.
+    One remedy is to add the constraint <blog-math>\|\boldsymbol{w}\|^2 = 1</blog-math>, but Fisher's approach handles this more elegantly.
 </p>
 <p>
-    Maximizing the separation of projected means (with the unit norm constraint) yields <blog-math>\mathbf{w} \propto \mathbf{m}_2 - \mathbf{m}_1</blog-math>, which does a reasonable job separating the two groups but may still result in significant class overlap.
+    Maximizing the separation of projected means (with the unit norm constraint) yields <blog-math>\boldsymbol{w} \propto \boldsymbol{m}_2 - \boldsymbol{m}_1</blog-math>, which does a reasonable job separating the two groups but may still result in significant class overlap.
 </p>
 
 <blog-figure>
     <div id="naive-projection-example"></div>
-    <figcaption>Projecting onto the line connecting the class means (<blog-math>\mathbf{w} \propto \mathbf{m}_2 - \mathbf{m}_1</blog-math>) results in significant overlap because it ignores the elongated shape of each class.</figcaption>
+    <figcaption>Projecting onto the line connecting the class means (<blog-math>\boldsymbol{w} \propto \boldsymbol{m}_2 - \boldsymbol{m}_1</blog-math>) results in significant overlap because it ignores the elongated shape of each class.</figcaption>
 </blog-figure>
 
 <script>
@@ -397,49 +397,49 @@
 </script>
 
 <p>
-    Fisher's Linear Discriminant goes further: it finds the weight vector <blog-math>\mathbf{w}</blog-math> that maximally separates the projected class means while also minimizing the within-class variance.
+    Fisher's Linear Discriminant goes further: it finds the weight vector <blog-math>\boldsymbol{w}</blog-math> that maximally separates the projected class means while also minimizing the within-class variance.
 </p>
 <p>
     The within-class variance of the transformed data from class <blog-math>\mathcal{C}_k</blog-math> is given by
     <blog-math block>
-        s_k^2 = \sum_{n\in \mathcal{C}_k}(\mathbf{w}^\top\mathbf{x}_n - m_k)^2
+        s_k^2 = \sum_{n\in \mathcal{C}_k}(\boldsymbol{w}^\top\boldsymbol{x}_n - m_k)^2
     </blog-math>
 </p>
 <p>
     The Fisher criterion captures this trade-off as the ratio of the squared separation of the projected means to the total within-class variance.
     <blog-math block>
-        J(\mathbf{w}) = \frac{(m_2 - m_1)^2}{s_1^2 + s_2^2}
+        J(\boldsymbol{w}) = \frac{(m_2 - m_1)^2}{s_1^2 + s_2^2}
     </blog-math>
-    Because <blog-math>J(\mathbf{w})</blog-math> is a ratio, it is invariant to the scale of <blog-math>\mathbf{w}</blog-math>, sidestepping the constraint issue mentioned earlier.
-    Rewriting this explicitly in terms of <blog-math>\mathbf{w}</blog-math> yields
+    Because <blog-math>J(\boldsymbol{w})</blog-math> is a ratio, it is invariant to the scale of <blog-math>\boldsymbol{w}</blog-math>, sidestepping the constraint issue mentioned earlier.
+    Rewriting this explicitly in terms of <blog-math>\boldsymbol{w}</blog-math> yields
     <blog-math block>
-        J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\mathbf{w}}{\mathbf{w}^\top\mathbf{S}_W\mathbf{w}}
-    </blog-math>
-    <blog-math block>
-        \mathbf{S}_B = (\mathbf{m}_2 -\mathbf{m}_1)(\mathbf{m}_2-\mathbf{m}_1)^\top
+        J(\boldsymbol{w}) = \frac{\boldsymbol{w}^\top \boldsymbol{S}_B\boldsymbol{w}}{\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}}
     </blog-math>
     <blog-math block>
-        \mathbf{S}_W=
-\sum_{n\in\mathcal{C}_1}(\mathbf{x}_n - \mathbf{m}_1)(\mathbf{x}_n - \mathbf{m}_1)^\top +
-\sum_{n\in\mathcal{C}_2}(\mathbf{x}_n - \mathbf{m}_2)(\mathbf{x}_n - \mathbf{m}_2)^\top
+        \boldsymbol{S}_B = (\boldsymbol{m}_2 -\boldsymbol{m}_1)(\boldsymbol{m}_2-\boldsymbol{m}_1)^\top
+    </blog-math>
+    <blog-math block>
+        \boldsymbol{S}_W=
+\sum_{n\in\mathcal{C}_1}(\boldsymbol{x}_n - \boldsymbol{m}_1)(\boldsymbol{x}_n - \boldsymbol{m}_1)^\top +
+\sum_{n\in\mathcal{C}_2}(\boldsymbol{x}_n - \boldsymbol{m}_2)(\boldsymbol{x}_n - \boldsymbol{m}_2)^\top
     </blog-math>
 </p>
 <p>
-    Differentiating with respect to <blog-math>\mathbf{w}</blog-math> <blog-appendix-ref key="fisher-derivation"></blog-appendix-ref> and solving, we obtain Fisher's Linear Discriminant:
+    Differentiating with respect to <blog-math>\boldsymbol{w}</blog-math> <blog-appendix-ref key="fisher-derivation"></blog-appendix-ref> and solving, we obtain Fisher's Linear Discriminant:
     <blog-math block>
-        \mathbf{w} \propto \mathbf{S}^{-1}_W(\mathbf{m}_2 - \mathbf{m}_1)
+        \boldsymbol{w} \propto \boldsymbol{S}^{-1}_W(\boldsymbol{m}_2 - \boldsymbol{m}_1)
     </blog-math>
 </p>
 <p>
     Fisher's Linear Discriminant makes several implicit assumptions.
-    It assumes that the classes have similar covariance structures, so that pooling them into a single within-class scatter matrix <blog-math>\mathbf{S}_W</blog-math> is reasonable.
+    It assumes that the classes have similar covariance structures, so that pooling them into a single within-class scatter matrix <blog-math>\boldsymbol{S}_W</blog-math> is reasonable.
     It also assumes that a linear projection can adequately separate the classes.
     When these assumptions hold, particularly for Gaussian-distributed data with equal covariances, Fisher's solution coincides with the Bayes-optimal linear classifier<blog-cite key="bishop2006"></blog-cite>.
 </p>
 
 <blog-figure>
     <div id="fisher-viz"></div>
-    <figcaption>Drag the handle to change the projection direction. The histogram shows how well-separated the classes are when projected onto <blog-math>\mathbf{w}</blog-math>. Click "Show Fisher's solution" to see the optimal direction.</figcaption>
+    <figcaption>Drag the handle to change the projection direction. The histogram shows how well-separated the classes are when projected onto <blog-math>\boldsymbol{w}</blog-math>. Click "Show Fisher's solution" to see the optimal direction.</figcaption>
 </blog-figure>
 
 <style>
@@ -799,55 +799,55 @@
 <p>To maximize the Fisher criterion</p>
 
 <blog-math block>
-    J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\mathbf{w}}{\mathbf{w}^\top\mathbf{S}_W\mathbf{w}}
+    J(\boldsymbol{w}) = \frac{\boldsymbol{w}^\top \boldsymbol{S}_B\boldsymbol{w}}{\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}}
 </blog-math>
 
-<p>we differentiate with respect to <blog-math>\mathbf{w}</blog-math> and set the result to zero. Using the quotient rule:</p>
+<p>we differentiate with respect to <blog-math>\boldsymbol{w}</blog-math> and set the result to zero. Using the quotient rule:</p>
 
 <blog-math block>
-    \frac{\partial J}{\partial \mathbf{w}} = \frac{2\mathbf{S}_B\mathbf{w}(\mathbf{w}^\top\mathbf{S}_W\mathbf{w}) - 2\mathbf{S}_W\mathbf{w}(\mathbf{w}^\top\mathbf{S}_B\mathbf{w})}{(\mathbf{w}^\top\mathbf{S}_W\mathbf{w})^2} = 0
+    \frac{\partial J}{\partial \boldsymbol{w}} = \frac{2\boldsymbol{S}_B\boldsymbol{w}(\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}) - 2\boldsymbol{S}_W\boldsymbol{w}(\boldsymbol{w}^\top\boldsymbol{S}_B\boldsymbol{w})}{(\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w})^2} = 0
 </blog-math>
 
 <p>The numerator must equal zero, so:</p>
 
 <blog-math block>
-    \mathbf{S}_B\mathbf{w}(\mathbf{w}^\top\mathbf{S}_W\mathbf{w}) = \mathbf{S}_W\mathbf{w}(\mathbf{w}^\top\mathbf{S}_B\mathbf{w})
+    \boldsymbol{S}_B\boldsymbol{w}(\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}) = \boldsymbol{S}_W\boldsymbol{w}(\boldsymbol{w}^\top\boldsymbol{S}_B\boldsymbol{w})
 </blog-math>
 
-<p>Since <blog-math>\mathbf{w}^\top\mathbf{S}_B\mathbf{w}</blog-math> and <blog-math>\mathbf{w}^\top\mathbf{S}_W\mathbf{w}</blog-math> are scalars, we can divide both sides by these quantities and rearrange:</p>
+<p>Since <blog-math>\boldsymbol{w}^\top\boldsymbol{S}_B\boldsymbol{w}</blog-math> and <blog-math>\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}</blog-math> are scalars, we can divide both sides by these quantities and rearrange:</p>
 
 <blog-math block>
-    \frac{\mathbf{S}_B\mathbf{w}}{\mathbf{w}^\top\mathbf{S}_B\mathbf{w}} = \frac{\mathbf{S}_W\mathbf{w}}{\mathbf{w}^\top\mathbf{S}_W\mathbf{w}}
+    \frac{\boldsymbol{S}_B\boldsymbol{w}}{\boldsymbol{w}^\top\boldsymbol{S}_B\boldsymbol{w}} = \frac{\boldsymbol{S}_W\boldsymbol{w}}{\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}}
 </blog-math>
 
-<p>This implies <blog-math>\mathbf{S}_B\mathbf{w}</blog-math> and <blog-math>\mathbf{S}_W\mathbf{w}</blog-math> point in the same direction, so we can write the generalized eigenvalue problem:</p>
+<p>This implies <blog-math>\boldsymbol{S}_B\boldsymbol{w}</blog-math> and <blog-math>\boldsymbol{S}_W\boldsymbol{w}</blog-math> point in the same direction, so we can write the generalized eigenvalue problem:</p>
 
 <blog-math block>
-    \mathbf{S}_B\mathbf{w} = \lambda\mathbf{S}_W\mathbf{w}
+    \boldsymbol{S}_B\boldsymbol{w} = \lambda\boldsymbol{S}_W\boldsymbol{w}
 </blog-math>
 
-<p>where <blog-math>\lambda = \frac{\mathbf{w}^\top\mathbf{S}_B\mathbf{w}}{\mathbf{w}^\top\mathbf{S}_W\mathbf{w}} = J(\mathbf{w})</blog-math>. Rearranging:</p>
+<p>where <blog-math>\lambda = \frac{\boldsymbol{w}^\top\boldsymbol{S}_B\boldsymbol{w}}{\boldsymbol{w}^\top\boldsymbol{S}_W\boldsymbol{w}} = J(\boldsymbol{w})</blog-math>. Rearranging:</p>
 
 <blog-math block>
-    \mathbf{S}_W^{-1}\mathbf{S}_B\mathbf{w} = \lambda\mathbf{w}
+    \boldsymbol{S}_W^{-1}\boldsymbol{S}_B\boldsymbol{w} = \lambda\boldsymbol{w}
 </blog-math>
 
-<p>Now, since <blog-math>\mathbf{S}_B = (\mathbf{m}_2 - \mathbf{m}_1)(\mathbf{m}_2 - \mathbf{m}_1)^\top</blog-math> is a rank-1 matrix, <blog-math>\mathbf{S}_B\mathbf{w}</blog-math> is always in the direction of <blog-math>(\mathbf{m}_2 - \mathbf{m}_1)</blog-math>:</p>
+<p>Now, since <blog-math>\boldsymbol{S}_B = (\boldsymbol{m}_2 - \boldsymbol{m}_1)(\boldsymbol{m}_2 - \boldsymbol{m}_1)^\top</blog-math> is a rank-1 matrix, <blog-math>\boldsymbol{S}_B\boldsymbol{w}</blog-math> is always in the direction of <blog-math>(\boldsymbol{m}_2 - \boldsymbol{m}_1)</blog-math>:</p>
 
 <blog-math block>
-    \mathbf{S}_B\mathbf{w} = (\mathbf{m}_2 - \mathbf{m}_1)\underbrace{(\mathbf{m}_2 - \mathbf{m}_1)^\top\mathbf{w}}_{\text{scalar}}
+    \boldsymbol{S}_B\boldsymbol{w} = (\boldsymbol{m}_2 - \boldsymbol{m}_1)\underbrace{(\boldsymbol{m}_2 - \boldsymbol{m}_1)^\top\boldsymbol{w}}_{\text{scalar}}
 </blog-math>
 
 <p>Substituting back:</p>
 
 <blog-math block>
-    \lambda\mathbf{S}_W\mathbf{w} \propto (\mathbf{m}_2 - \mathbf{m}_1)
+    \lambda\boldsymbol{S}_W\boldsymbol{w} \propto (\boldsymbol{m}_2 - \boldsymbol{m}_1)
 </blog-math>
 
-<p>Since we only care about the direction of <blog-math>\mathbf{w}</blog-math> (not its magnitude), we can drop the scalar factors to obtain:</p>
+<p>Since we only care about the direction of <blog-math>\boldsymbol{w}</blog-math> (not its magnitude), we can drop the scalar factors to obtain:</p>
 
 <blog-math block>
-    \mathbf{w} \propto \mathbf{S}_W^{-1}(\mathbf{m}_2 - \mathbf{m}_1)
+    \boldsymbol{w} \propto \boldsymbol{S}_W^{-1}(\boldsymbol{m}_2 - \boldsymbol{m}_1)
 </blog-math>
 </blog-appendix-item>
 

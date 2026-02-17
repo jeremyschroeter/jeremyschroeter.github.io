@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamical Systems Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="sidebar">
+            <h1>Phase Portrait</h1>
+
+            <div class="section">
+                <label class="section-label">Preset</label>
+                <select id="preset-select"></select>
+            </div>
+
+            <div class="section">
+                <label class="section-label">Equations</label>
+                <div class="eq-row">
+                    <span class="eq-label">dx/dt =</span>
+                    <input type="text" id="dx-input" spellcheck="false" autocomplete="off">
+                </div>
+                <div class="eq-row">
+                    <span class="eq-label">dy/dt =</span>
+                    <input type="text" id="dy-input" spellcheck="false" autocomplete="off">
+                </div>
+                <div id="eq-error" class="error-msg"></div>
+            </div>
+
+            <div class="section" id="param-section">
+                <label class="section-label">Parameters</label>
+                <div id="param-container"></div>
+            </div>
+
+            <div class="section">
+                <label class="section-label">Display</label>
+                <div class="toggle-row">
+                    <label><input type="checkbox" id="toggle-vf" checked> Vector field</label>
+                </div>
+                <div class="toggle-row">
+                    <label><input type="checkbox" id="toggle-grid" checked> Grid</label>
+                </div>
+                <div class="toggle-row">
+                    <label><input type="checkbox" id="toggle-nullclines"> Nullclines</label>
+                </div>
+                <div class="toggle-row">
+                    <label><input type="checkbox" id="toggle-particles" checked> Particles</label>
+                </div>
+            </div>
+
+            <div class="section">
+                <label class="section-label">Settings</label>
+                <div class="slider-row">
+                    <span>Contrast</span>
+                    <input type="range" id="mag-scale" min="0.15" max="2.0" step="0.01" value="0.55">
+                    <span id="mag-scale-val">0.55</span>
+                </div>
+                <div class="slider-row">
+                    <span>Speed</span>
+                    <input type="range" id="speed-slider" min="0" max="5" step="0.1" value="1.0">
+                    <span id="speed-val">1.0</span>
+                </div>
+                <div class="slider-row">
+                    <span>Trail fade</span>
+                    <input type="range" id="trail-slider" min="0.9" max="1.0" step="0.001" value="0.985">
+                    <span id="trail-val">0.985</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="btn-row">
+                    <button id="btn-pause">Pause</button>
+                    <button id="btn-reset-view">Reset View</button>
+                    <button id="btn-clear-traj">Clear Traj.</button>
+                </div>
+            </div>
+
+            <div class="section help-section">
+                <label class="section-label">Controls</label>
+                <div class="help-text">
+                    <b>Drag</b> to pan &nbsp;|&nbsp; <b>Scroll</b> to zoom<br>
+                    <b>Shift+Click</b> add trajectory<br>
+                    <b>Right-click</b> remove trajectory<br>
+                    <b>Space</b> pause &nbsp;|&nbsp; <b>R</b> reset view<br>
+                    <b>G</b> grid &nbsp;|&nbsp; <b>N</b> nullclines &nbsp;|&nbsp; <b>P</b> particles
+                </div>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="gl-canvas"></canvas>
+            <canvas id="overlay-canvas"></canvas>
+            <div id="info-bar">
+                <span id="fps">-- FPS</span>
+                <span id="cursor-pos">(0, 0)</span>
+                <span id="zoom-level">Zoom: 50.0x</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="math-parser.js"></script>
+    <script src="renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

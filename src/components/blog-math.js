@@ -39,7 +39,13 @@ class BlogMath extends HTMLElement {
         throwOnError: false,
         trust: false,
         strict: 'warn',
-        output: 'html'
+        output: 'html',
+        macros: {
+          '\\bs': '\\boldsymbol',
+          '\\R': '\\mathbb{R}',
+          '\\E': '\\mathbb{E}',
+          '\\Rn': '\\mathbb{R}^n'
+        }
       });
 
       // Clear and set new content

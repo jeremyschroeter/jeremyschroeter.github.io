@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Kalman Filter</title>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+    <link rel="bibliography" href="/assets/references.bib">
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Blog Components -->
+    <script defer src="/dist/blog-components.js"></script>
+</head>
+<body id="post-page">
+<div class='content'>
+    <blog-nav></blog-nav>
+    <blog-header
+      title="The Kalman Filter"
+      subtitle="I discuss and derive the Kalman Filter and how it works."
+      date="2026-02-07">
+    </blog-header>
+
+<div class='wrap article'>
+
+<p>
+  The Kalman filter model assumes the latent state <blog-math>z</blog-math> at time <blog-math>t</blog-math> is evolved from the state at time <blog-math>t-1</blog-math>  according to
+  <blog-math block>
+    \bs{z}_t = \bs{Az}_{t-1} + \bs{w}\\
+    \bs{w} \sim \bs{\mathcal{N}}(\bs{0}, \bs{\Gamma}) \\
+    \bs{z}_1 = \bs{\mu}_0 + \bs{u}\\
+    \bs{u} \sim \mathcal{N}(0, \bs{V}_0)
+  </blog-math>
+  where <blog-math>\bs{A}</blog-math> is the state transition matrix and <blog-math>\bs{\Gamma}</blog-math> is the state noise covariance of the latents.
+</p>
+<p>
+  At time <blog-math>t</blog-math> an observation <blog-math>x</blog-math> of our system is made according to
+  <blog-math block>
+    \bs{x}_t = \bs{Cz}_t + \bs{v}\\
+    \bs{v} \sim \mathcal{N}(\bs{0}, \bs{R})
+  </blog-math>
+  where <blog-math>\bs{C}</blog-math> is the "loadings" of our latents onto our observations and <blog-math>\bs{R}</blog-math> is the observation noise covariance. Our Gaussian noise assumptions on our latents and observations provide some very nice properties. Notably our joint and conditional distributions are all Gaussian as well.
+</p>
+
+<p>
+  We do not have measurement data for our latents <blog-math>\bs{z}_t</blog-math> but we <i>do</i> have it for our observations <blog-math>x</blog-math>. As per usual in the latent variable/missing data regime, we can employ the expectation-maximization (EM) algorithm to infer our <blog-math>\bs{z}</blog-math> given <blog-math>\bs{x}</blog-math>.
+</p>
+
+<p>
+  We do not have access to our latent variables <blog-math>\bs{z}</blog-math> and so vanilla maximum likelihood is impossible. Instead, the EM algorithm asks us to optimize a surrogate objective <blog-math>Q(\bs{\theta}, \bs{\theta}^{(t)})</blog-math> which is the expected complete log-likelihood under our posterior <blog-math>p(\bs{z}|\bs{x}, \bs{\theta^{(t)}})</blog-math>
+  <blog-math block>
+    Q(\bs{\theta}, \bs{\theta}^{(t)}) = \E_{p(\bs{z} \mid \bs{x}, \bs{\theta}^{(t)})}\big[\log p(\bs{x}, \bs{z} \mid \bs{\theta})\big]
+  </blog-math>
+  In the EM algorithm, we alternate between computing <blog-math>Q</blog-math> and maximizing it with respect to our parameters. Computing <blog-math>Q</blog-math> essentially comes down to computing the sufficient statistics of the posterior, and since the Kalman Filter is a linear Gaussian model, this will prove to be quite nice.
+</p>
+<h2>Computing the posterior</h2>
+<p>
+I believe there is an elegant way to do this using the sum-product algorithm (Bishop says there is) but I will just continue by specifying the joint distribution such that I can take the posterior. I am realizing however, that I am not completely clear on how all of our variables are independent. I am sure they are but I am not 100% clear on why.
+</p>
+<p>
+  Anyway, our goal is to specify
+  <blog-math block>
+    \begin{bmatrix} \bs{z}_t \\ \bs{x}_t \end{bmatrix} \bigg |_{\bs{x}_{1:t-1}} \sim
+    \mathcal{N}
+    \Bigg(
+      \begin{bmatrix}
+        \E[\bs{z}_t] \\
+        \E[\bs{x}_t] 
+      \end{bmatrix},
+      \begin{bmatrix}
+        \text{Cov}(\bs{z}_t) & \text{Cov}(\bs{z}_t, \bs{x}_t) \\
+        \text{Cov}(\bs{x}_t, \bs{z}_t) & \text{Cov}(\bs{x}_t)
+      \end{bmatrix}
+    \Bigg)
+  </blog-math>
+</p>
+<p>
+  <h4>Expectations</h4>
+  <blog-math block>
+    \begin{aligned}
+      \E[\bs{z}_t] &= \E[\bs{Az}_{t-1} + \bs{w}] \\
+                   &= \bs{A}\E[\bs{z}_{t-1}] + \E[\bs{w}] \\
+                   &= \bs{A}\hat{\bs{z}}_{t-1|{t-1}}
+    \end{aligned} \\
+  </blog-math>
+
+  <blog-math block>
+    \begin{aligned}
+      \E[\bs{x}_t] &= \E[\bs{CAz}_{t-1} + \bs{Cw} + \bs{v}] \\
+                   &= \bs{C}\E[\bs{Az}_{t-1}] + \bs{C}\E[\bs{w}] + \E[\bs{v}] \\
+                   &= \bs{C}\hat{\bs{z}}_{t|t-1}
+    \end{aligned}
+  </blog-math>
+</p>
+<h4>Variances</h4>
+<p>
+  <blog-math block>
+    \begin{aligned}
+      \text{Cov}(\bs{z}_t) &= \E[(\bs{z}_t - \E[\bs{z}_t])(\bs{z}_t - \E[\bs{z}_t])^\top] \\
+                           &= \E[(\bs{Az}_{t-1} + \bs{w} - \bs{A}\hat{\bs{z}}_{t-1|t-1})(\bs{Az}_{t-1} + \bs{w} - \bs{A}\hat{\bs{z}}_{t-1|t-1})^\top] \\
+                           &= \E[(\bs{A}(\bs{z}_{t-1} - \hat{\bs{z}}_{t-1|t-1}) + \bs{w})(\bs{A}(\bs{z}_{t-1} - \hat{\bs{z}}_{t-1|t-1}) + \bs{w})^\top] \\
+                           &\text{most terms with } \bs{w} \text{ fall out due to independence} \\
+                           &= \bs{A}\E[(\bs{z}_{t-1} - \hat{\bs{z}}_{t-1|t-1})(\bs{z}_{t-1} - \hat{\bs{z}}_{t-1|t-1})^\top]\bs{A}^\top + \E[\bs{ww}^\top] \\
+                           &= \bs{AP}_{t-1|t-1}\bs{A}^\top + \bs{\Gamma} \qquad \text{from definition of covariance}
+    \end{aligned}
+  <blog-math>
+</p>
+<p>
+  <blog-math block>
+    \begin{aligned}
+      \text{Cov}(\bs{x}_t) &= \E[(\bs{x}_t - \E[\bs{x}_t])(\bs{x}_t - \E[\bs{x}_t])^\top] \\
+                           &= \E[(\bs{Cz}_t + \bs{v} - \bs{C}\hat{\bs{z}}_{t|t-1})(\bs{Cz}_t + \bs{v} - \bs{C}\hat{\bs{z}}_{t|t-1})^\top] \\
+                           &= \E[(\bs{C}(\bs{z}_t - \hat{\bs{z}}_{t|t-1}) + \bs{v})(\bs{C}(\bs{z}_t - \hat{\bs{z}}_{t|t-1}) + \bs{v})^\top] \\
+                           &\text{most terms with } \bs{v} \text{ fall out due to independence} \\
+                           &= \bs{C}\E[(\bs{z}_t - \hat{\bs{z}}_{t|t-1})(\bs{z}_t - \hat{\bs{z}}_{t|t-1})^\top]\bs{C}^\top + \E[\bs{vv}^\top] \\
+                           &= \bs{CP}_{t|t-1}\bs{C}^\top + \bs{R}
+    \end{aligned}
+  </blog-math>
+</p>
+<h4>Covariances</h4>
+<p>
+  <blog-math block>
+    \begin{aligned}
+      \text{Cov}(\bs{x}_t, \bs{z}_t) &= \E[(\bs{x}_t - \E[\bs{x}_t])(\bs{z}_t - \E[\bs{z}_t])^\top] \\
+      &= \E[(\bs{Cz}_t + \bs{v} - \bs{C}\hat{\bs{z}}_{t|t-1})(\bs{Az}_{t-1} + \bs{w} - \bs{A}\hat{\bs{z}}_{t-1|t-1})^\top] \\
+      &= \E[(\bs{C}(\bs{z}_t - \hat{\bs{z}}_{t|t-1}) + \bs{v})(\bs{z}_{t} - \hat{\bs{z}}_{t|t-1})^\top] \\
+      &= \E[\bs{C}(\bs{z}_t - \hat{\bs{z}}_{t|t-1})(\bs{z}_t - \hat{\bs{z}}_{t|t-1})^\top] + \E[\bs{v}(\bs{z}_t - \hat{\bs{z}}_{t|t-1})^\top] \\
+      &= \bs{CP}_{t|t-1}
+    \end{aligned}
+  </blog-math>
+</p>
+<p>
+  We are paramaterizing a covariance matrix, therefore
+  <blog-math block>
+    \text{Cov}(\bs{z}_t, \bs{x}_t) = \text{Cov}(\bs{x}_t, \bs{z}_t)^\top = (\bs{CP}_{t|t-1})^\top = \bs{P}_{t|t-1}\bs{C}^\top
+  </blog-math>
+  So the full joint distribution is
+  <blog-math block>
+    \begin{bmatrix} \bs{z}_t \\ \bs{x}_t \end{bmatrix}\bigg|_{\bs{x}_{1:t-1}} \sim
+\bs{\mathcal{N}}
+\Bigg(
+    \begin{bmatrix} \hat{\bs{z}}_{t|t-1} \\ \bs{C}\hat{\bs{z}}_{t|t-1}\end{bmatrix},
+    \begin{bmatrix}
+        \bs{P}_{t|t-1} & \bs{P}_{t|t-1}\bs{C}^\top \\
+        \bs{CP}_{t|t-1} & \bs{CP}_{t|t-1}\bs{C}^\top + \bs{R}
+    \end{bmatrix}
+\Bigg)
+  </blog-math>
+where <blog-math>\hat{\bs{z}}_{t|s} \triangleq \E[\bs{z}_t \mid \bs{x}_{1:s}]</blog-math>
+and <blog-math>\bs{P}_{t|s} \triangleq \text{Cov}(\bs{z}_t \mid \bs{x}_{1:s})</blog-math>
+</p>
+<p>
+  Once again, because everything is jointly Gaussian, we can simpyl use the formulas for conditionals to get the posterior <blog-appendix-ref key="gauss-cond"></blog-appendix-ref>. In our case we have
+  <blog-math block>
+    \E[\bs{z}_t | \bs{x}_t, \bs{x}_{1:t-1}] = \hat{\bs{z}}_{t|t-1} + \bs{P}_{t|t-1}\bs{C}^\top(\bs{CP}_{t|t-1}\bs{C}^\top + \bs{R})^{-1}(\bs{x}_t - \bs{C}\hat{\bs{z}}_{t|t-1})
+  </blog-math>
+  <blog-math block>
+    \text{Cov}(\bs{z}_t)| \bs{x}_t, \bs{x}_{1:t-1}] = \bs{P}_{t|t-1} - \bs{P}_{t|t-1}\bs{C}^\top(\bs{CP}_{t|t-1}\bs{C}^\top + \bs{R})^{-1}\bs{CP}_{t|t-1}
+  </blog-math>
+  If we introduce <blog-math>\bs{K} = \bs{P}_{t|t-1}\bs{C}^\top(\bs{CP}_{t|t-1}\bs{C}^\top + \bs{R})^{-1}</blog-math>, then we can write things a little more neatly.
+  <blog-math block>
+    p(\bs{z}_t | \bs{x}_t, \bs{x}_{1:t-1}) \sim \mathcal{N}(\hat{\bs{z}}_{t|t-1} + \bs{K}(\bs{x}_t - \hat{\bs{x}}_{t|t-1}), \bs{P}_{t|t-1} - \bs{K}\bs{CP}_{t|t-1})
+  </blog-math>
+  where I've introduced <blog-math>\bs{C}\hat{\bs{z}}_{t|t-1} = \hat{\bs{z}}_{t|t-1}. </blog-math><blog-math>\bs{K}</blog-math> is known as the "Kalman gain".
+</p>
+
+<p>
+  What we've just derived is the Kalman Filter. However, we can obtain even better estimates of the posterior if we incorporate information about future timesteps as well. To do this we have to specify one more posterior distribution, the posterior over <blog-math>\bs{z}_t</blog-math> given <blog-math>\bs{z}_{t+1}</blog-math>. We will see that most of the work is actualy already done for us in computing the filter.
+</p>
+<h4>Kalman Smoother</h4>
+<blog-math block>
+  \begin{bmatrix} \bs{z}_t \\ \bs{z}_{t+1}\end{bmatrix} \bigg |_{\bs{x}_{1:t}} \sim
+  \mathcal{N}
+  \Bigg(
+    \begin{bmatrix} \E[\bs{z}_t] \\ \E[\bs{z}_{t+1}] \end{bmatrix},
+    \begin{bmatrix}
+      \text{Cov}(\bs{z}_{t}) & \text{Cov}(\bs{z}_{t}, \bs{z}_{t+1}) \\
+      \text{Cov}(\bs{z}_{t+1}, \bs{z}_{t}) & \text{Cov}(\bs{z}_{t+1})
+    \end{bmatrix}
+  \Bigg)
+</blog-math>
+<blog-math block>
+  \E[\bs{z}_{t+1}] = \hat{\bs{z}}_{t+1|t} \\
+  \E[\bs{z}_t] = \hat{\bs{z}}_{t|t} \\
+  \text{Cov}(\bs{z}_{t+1}) = \bs{P}_{t+1 | t} \\
+  \text{Cov}(\bs{z}_{t}) = \bs{P}_{t | t}
+</blog-math>
+<blog-math block>
+  \begin{aligned}
+\text{Cov}(\bs{z}_{t+1}, \bs{z}_t)
+                    &= \E[(\bs{z}_{t+1} - \E[\bs{z}_{t+1}])(\bs{z}_{t} - \E[\bs{z}_{t}])^\top] \\
+                    &= \E[(\bs{z}_{t+1} - \hat{\bs{z}}_{t+1|t})(\bs{z}_{t} - \hat{\bs{z}}_{t|t})^\top] \\
+                    &= \E[(\bs{Az}_{t} + \bs{w} - \hat{\bs{z}}_{t+1|t})(\bs{z}_t-\hat{\bs{z}}_{t|t})^\top] \\
+                    &= \E[(\bs{A}(\bs{z}_{t} - \hat{\bs{z}}_{t|t})+\bs{w})(\bs{z}_t - \hat{\bs{z}}_{t|t})^\top] \\
+                    &= \bs{A}\E[(\bs{z}_t - \hat{\bs{z}}_{t|t})(\bs{z}_t - \hat{\bs{z}}_{t|t})^\top] \\
+                    &= \bs{AP}_{t|t}
+  \end{aligned}
+</blog-math>
+<p>
+  So after all this we get
+  <blog-math block>
+    \begin{bmatrix}\bs{z}_{t} \\ \bs{z}_{t+1}\end{bmatrix} \bigg |_{\bs{x}_{1:t}} \sim
+  \mathcal{N}
+  \Bigg(
+    \begin{bmatrix} \hat{\bs{z}}_{t|t} \\ \hat{\bs{z}}_{t+1|t}\end{bmatrix},
+    \begin{bmatrix}
+      \bs{P}_{t|t} & \bs{P}_{t|t}\bs{A}^\top \\
+      \bs{AP}_{t|t} & \bs{P}_{t+1|t}
+    \end{bmatrix}
+  \Bigg)
+  </blog-math>
+</p>
+<p>
+  Now we apply the Gaussian conditioning formulas once more to get the posterior
+</p>
+<blog-math block>
+  p(\bs{z}_t|\bs{z}_{t+1}, \bs{x}_{1:t}) =
+  \mathcal{N}(
+    \hat{\bs{z}}_{t|t} + \bs{P}_{t|t}\bs{A}^\top\bs{P}_{t+1|t}^{-1}(\bs{z}_{t+1} - \hat{\bs{z}}_{t+t|t}),
+    \bs{P}_{t|t} - \bs{P}_{t|t}\bs{A}^\top\bs{P}^{-1}_{t+1|t}\bs{AP}_{t|t})
+</blog-math>
+<p>
+  If we define <blog-math>\bs{J} = \bs{P}_{t|t}\bs{A}^\top\bs{P}_{t+1|t}^{-1}</blog-math> we can rewrite things a little more neatly.
+  <blog-math block>
+  p(\bs{z}_t|\bs{z}_{t+1}, \bs{x}_{1:t}) =
+  \mathcal{N}(
+    \hat{\bs{z}}_{t|t} + \bs{J}(\bs{z}_{t+1} - \hat{\bs{z}}_{t+1|t}),
+    \bs{P}_{t|t} - \bs{J}\bs{AP}_{t|t})
+</blog-math>
+</p>
+<p>
+  We almost have enough to finish our E-step. The last thing we need to do is compute <blog-math>p(\bs{z}_t | \bs{x}_{1:T})</blog-math>, that is, the distribution of our latents given the entire sequence of our observations. Notice however, that the Markov assumption we made in our model makes this a trivial recursion. We start with <blog-math>\bs{z}_T</blog-math> and <blog-math>\bs{P}_{T|T}</blog-math> from the filter step, and then iterate backwards. We can write this succincly as
+  <blog-math block>
+    \begin{aligned}
+      p(\bs{z}_t | \bs{x}_{1:T})
+      &= \int p(\bs{z}_t | \bs{z}_{t+1}, \bs{x}_{1:T}) p(\bs{z}_{t+1} | \bs{x}_{1:T})d\bs{z}_{t+1} \\
+      &= \int p(\bs{z}_t | \bs{z}_{t+1}, \bs{x}_{1:t}) p(\bs{z}_{t+1} | \bs{x}_{1:T}) d\bs{z}_{t+1}
+    \end{aligned}
+  </blog-math>
+</p>
+
+<h2>Computing <blog-math>Q</blog-math></h2>
+Great, now that we have the two posterior distributions we can write out the expected total log-likelihood.
+<blog-math block>
+  Q(\bs{\theta}, \bs{\theta}^{(t)}) = \E_{p(\bs{z} \mid \bs{x}, \bs{\theta}^{(t)})}\big[\log p(\bs{x}, \bs{z} \mid \bs{\theta})\big]
+</blog-math>
+Let's start by just writing out the total likelihood
+<blog-math block>
+  p(\bs{X}, \bs{Z} | \bs{\theta}) = p(\bs{z}_1|\bs{\mu}_0, \bs{V}_0)\prod_{t=2}^T p(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})\prod_{t=1}^T p(\bs{x}_t | \bs{z_t}, \bs{C}, \bs{R})
+</blog-math>
+<blog-math block>
+  \begin{aligned}
+    \log p(\bs{X}, \bs{Z} | \bs{\theta}) &= \log p(\bs{z}_1|\bs{\mu}_0, \bs{V}_0)\\
+    &+ \sum_{t=2}^T\log p(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})\\
+    &+ \sum_{t=1}^T \log p(\bs{x}_t | \bs{z}_t, \bs{C}, \bs{R})
+  \end{aligned}
+</blog-math>
+<blog-math block>
+  \begin{aligned}
+    \E_{p(\bs{Z}|\bs{X},\bs{\theta}^{(t)})}[\log p(\bs{X}, \bs{Z} | \bs{\theta})] &= \E_{p(\bs{Z}|\bs{X},\bs{\theta}^{(t)})}\bigg[\log p(\bs{z}_1|\bs{\mu}_0, \bs{V}_0)\bigg]\\
+    &+ \E_{p(\bs{Z}|\bs{X},\bs{\theta}^{(t)})}\bigg[\sum_{t=2}^T\log p(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})\bigg]\\
+    &+ \E_{p(\bs{Z}|\bs{X},\bs{\theta}^{(t)})}\bigg[\sum_{t=1}^T \log p(\bs{x}_t | \bs{z}_t, \bs{C}, \bs{R})\bigg]
+  \end{aligned}
+</blog-math>
+<p>
+  Let's break up each piece and then take it's derivative with respect to the parameters it contains. For notational convenience we'll assume that <blog-math>\E = \E_{p(\bs{Z}|\bs{X},\bs{\theta}^{(t)})}</blog-math>
+</p>
+<h4>First term</h4>
+<p>
+We'll start by finding the optimal <blog-math>\bs{V}_0</blog-math>
+</p>
+<blog-math block>
+  \begin{aligned}
+  \E_{p(\bs{Z}|\bs{X}, \bs{\theta}^{(t)})}\big[\log p(\bs{z}_1 | \bs{\mu}_0, \bs{V}_0)\big]
+    &= \E\big[\log \mathcal{N}(\bs{z}_1 | \bs{\mu}_0, \bs{V}_0)\big] \\
+    &= \E\bigg[ \log \bigg((2\pi)^{-k/2} |\bs{V}_0|^{-1/2} \exp(-\frac{1}{2}(\bs{z}_1 - \bs{\mu}_0)^\top\bs{V}^{-1}_0(\bs{z}_1 - \bs{\mu}_0))\bigg)\bigg] \\
+    &= \E\bigg[-\frac{k}{2}\log 2\pi - \frac{1}{2}\log |\bs{V_0}| - \frac{1}{2}(\bs{z}_1 - \bs{\mu}_0)^\top\bs{V}_0^{-1}(\bs{z}_1 - \bs{\mu}_0)\bigg]\\
+    &= -\frac{k}{2}\log 2\pi - \frac{1}{2}\log |\bs{V}_0 | - \frac{1}{2}\E\bigg[(\bs{z}_1 - \bs{\mu}_0)^\top\bs{V}^{-1}_0(\bs{z}_1 - \bs{\mu}_0)\bigg] \\
+    &= -\frac{k}{2}\log 2\pi - \frac{1}{2} \log | \bs{V}_0 |- \frac{1}{2} \E\bigg[\text{Tr}((\bs{z}_1 - \bs{\mu}_0)^\top \bs{V}_0^{-1}(\bs{z}_1 - \bs{\mu}_0))\bigg] \\
+    &= -\frac{k}{2}\log 2\pi - \frac{1}{2} \log | \bs{V}_0 |- \frac{1}{2} \E\bigg[\text{Tr}(\bs{V}_0^{-1}(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top)\bigg] \\
+    &= -\frac{k}{2}\log 2\pi - \frac{1}{2} \log | \bs{V}_0 |- \frac{1}{2} \text{Tr}\bigg(\bs{V}_0^{-1}\E\big[(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top\big]\bigg)
+  \end{aligned}
+</blog-math>
+Now we take the derivative with respect to <blog-math>\bs{V}_0</blog-math>
+<blog-math block>
+  \begin{aligned}
+  \frac{\partial Q(\bs{\theta}, \bs{\theta}^{(t)})}{\partial \bs{V}_0}
+  &=\frac{\partial}{\partial \bs{V}_0}\Bigg(-\frac{k}{2}\log 2\pi - \frac{1}{2} \log | \bs{V}_0 |- \frac{1}{2} \text{Tr}\bigg(\bs{V}_0^{-1}\E\big[(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top\big]\bigg)\Bigg) \\
+  &= 0 - \frac{1}{2}\bs{V}_0^{-1} + \frac{1}{2}\bs{V}_0^{-1}\E\big[(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top\big]\bs{V}_0^{-1}
+  \end{aligned}
+</blog-math>
+<p>
+  Setting equal to 0 and using <blog-appendix-ref key="grad-of-trace"></blog-appendix-ref>
+</p>
+<blog-math block>
+  \begin{aligned}
+  0 &= - \frac{1}{2}\bs{V}_0^{-1} + \frac{1}{2}\bs{V}_0^{-1}\E\big[(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top\big]\bs{V}_0^{-1} \\
+  \bs{V}_0^{\text{new}} &= \E\big[(\bs{z}_1 - \bs{\mu}_0)(\bs{z}_1 - \bs{\mu}_0)^\top\big] \\
+  &= \E[\bs{z}_1\bs{z}_1^\top] - \E[\bs{z}_1]\E[\bs{z}_1^\top]
+  \end{aligned}
+</blog-math>
+This is just maximum likelihood for the multivariate Gaussian, but using the expectation under the posterior. Now let's find the optimal <blog-math>\bs{\mu}_0</blog-math>. We can ignore all the terms that don't contain <blog-math>\bs{\mu}_0</blog-math>
+<blog-math block>
+  \begin{aligned}
+  \frac{\partial Q(\bs{\theta}, \bs{\theta}^{(t)})}{\partial \bs{\mu}_0}
+  &= -\frac{1}{2}\frac{\partial}{\partial \bs{\mu}_0} \E\bigg[(\bs{z}_1 - \bs{\mu}_0)^\top \bs{V}_0^{-1} (\bs{z}_1 - \bs{\mu}_0)\bigg] \\
+  &= \E\bigg[\bs{V}_0^{-1}(\bs{z}_1 - \bs{\mu}_0)\bigg] \\
+  &= \bs{V}_0^{-1} \E[\bs{z}_1 - \bs{\mu}_0]
+  \end{aligned}
+</blog-math>
+Setting equal to 0
+<blog-math block>
+  \begin{aligned}
+    0 &= \bs{V}_0^{-1} \E[\bs{z}_1 - \bs{\mu}_0] \\
+    &= \E[\bs{z}_1 - \bs{\mu}_0] \\
+    &= \E[\bs{z}_1]  - \bs{\mu}_0 \\
+    \bs{\mu}_0 &= \E[\bs{z}_1]
+  \end{aligned}
+</blog-math>
+
+<h4>Second term</h4>
+We'll start by finding the optimal <blog-math>\bs{\Gamma}</blog-math>
+<blog-math block>
+  \begin{aligned}
+    \E_{p(\bs{Z} | \bs{X}, \bs{\theta}^{(t)})}[\log p(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})]
+    &= \E\Bigg[\sum_{t=2}^T\log p(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})\Bigg] \\
+    &= \E\Bigg[\sum_{t=2}^T \log \mathcal{N}(\bs{z}_t | \bs{z}_{t-1}, \bs{A}, \bs{\Gamma})\Bigg] \\
+    &= \E\Bigg[\sum_{t=2}^T \log\bigg((2\pi)^{-k/2}|\bs{\Gamma}|^{-1/2}\exp\big(-\frac{1}{2}(\bs{z}_t - \bs{Az}_{t-1})^\top\bs{\Gamma}^{-1}(\bs{z}_t - \bs{Az}_{t-1})\big)\bigg)\Bigg] \\
+    &= \E\Bigg[\sum_{t=2}^T -\frac{k}{2}\log 2\pi - \frac{1}{2}\log |\bs{\Gamma}| -\frac{1}{2} (\bs{z}_t - \bs{Az}_{t-1})^\top\bs{\Gamma}^{-1}(\bs{z}_t - \bs{Az}_{t-1})\bigg] \\
+    &= - \frac{T-1}{2}(k2\pi + \log |\bs{\Gamma}|) - \E\Bigg[\sum_{t=2}^T\frac{1}{2}(\bs{z}_t - \bs{Az}_{t-1})^\top\bs{\Gamma}^{-1}(\bs{z}_t - \bs{Az}_{t-1})\Bigg]
+  \end{aligned}
+</blog-math>
+<p>
+  Taking the derivative with respect to <blog-math>Q</blog-math>
+</p>
+<blog-math block>
+  \frac{\partial Q}{\partial \bs{\Gamma}} = -\frac{T-1}{2}\bs{\Gamma}^{-1} + \frac{1}{2} \bs{\Gamma}^{-1}\sum_{t=2}^T\E[(\bs{z}_t - \bs{Az}_{t-1})(\bs{z}_t - \bs{Az}_{t-1})^\top]\bs{\Gamma}^{-1}
+</blog-math>
+<p>Setting equal to 0 and solving for <blog-math>\bs{\Gamma}</blog-math></p>
+<blog-math block>
+  \begin{aligned}
+  \bs{\Gamma} &= \frac{1}{T-1} \sum_{t=2}^T \E[(\bs{z}_t - \bs{Az}_{t-1})(\bs{z}_t - \bs{Az}_{t-1})^\top]\\
+  &= \frac{1}{T-1} \sum_{t=2}^T
+  \bigg\{
+    \E[\bs{z}_t\bs{z}_t^\top]   - \E[\bs{z}_t\bs{z}_{t-1}^\top]\bs{A}^\top - \bs{A}\E[\bs{z}_{t-1}\bs{z}_t^\top] + \bs{A}\E[\bs{z}_{t-1}\bs{z}_{t-1}^\top]\bs{A}^\top
+  \bigg\}
+  \end{aligned}
+</blog-math>
+<p>
+  Now we look for the derivative with respect to <blog-math>\bs{A}</blog-math>
+</p>
+<blog-math block>
+  \begin{aligned}
+    \frac{\partial Q}{\partial \bs{A}}
+    &= -\frac{1}{2}\frac{\partial}{\partial \bs{A}} \sum_{t=2}^T \E\bigg[(\bs{z}_t - \bs{Az}_{t-1})^\top\bs{\Gamma}^{-1}(\bs{z}_t - \bs{Az}_{t-1})\bigg] \\
+    &= -\frac{1}{2}\sum_{t=2}^T\E\big[-2\bs{\Gamma}^{-1}(\bs{z}_t - \bs{Az}_{t-1})\bs{z}_{t-1}^\top\big] \\
+    &= \bs{\Gamma}^{-1}\sum_{t=2}^T\E[(\bs{z}_t - \bs{Az}_{t-1})\bs{z}_{t-1}^\top] \\
+  \end{aligned}
+</blog-math>
+<p>With use of <blog-appendix-ref key="quad-form-mean"></blog-appendix-ref>. Setting equal to <blog-math>0</blog-math> and solving for <blog-math>\bs{A}</blog-math></p>
+<blog-math block>
+  \begin{aligned}
+    0 &= \bs{\Gamma}^{-1}\sum_{t=2}^T\E[(\bs{z}_t - \bs{Az}_{t-1})\bs{z}_{t-1}^\top] \\
+    0 &= \sum_{t=2}^T \E[\bs{z}_t\bs{z}_{t-1}^\top] - \bs{A}\E[\bs{z}_{t-1}\bs{z}_{t-1}^\top] \\
+    \bs{A} &= \Bigg(\sum_{t=2}^T\E[\bs{z}_t\bs{z}_{t-1}^\top]\Bigg)\Bigg(\sum_{t=2}^T\E[\bs{z}_{t-1}\bs{z}_{t-1}^\top]\Bigg)^{-1}
+  \end{aligned}
+</blog-math>
+<p>
+  At this point I think we pretty much get the picture.
+</p>
+<h4>Third Term</h4>
+<blog-math block>
+    \frac{\partial Q}{\partial \bs{R}} = -\frac{1}{2}
+    \Bigg(
+      T\bs{R}^{-1} - \bs{R}^{-1}\sum_{t=1}^T\E\bigg[(\bs{x}_t - \bs{Cz}_t)(\bs{x}_t - \bs{Cz}_t)^\top\bigg]\bs{R}^{-1}
+    \Bigg)
+</blog-math>
+<p>Set equal to 0 and solve for <blog-math>\bs{R}</blog-math></p>
+<blog-math block>
+  \begin{aligned}
+  \bs{R} &= \frac{1}{T}\sum_{t=1}^T \E[(\bs{x}_t - \bs{Cz}_t)(\bs{x}_t - \bs{Cz}_t)^\top] \\
+  &= \frac{1}{T}\sum_{t=1}^T
+  \Bigg\{
+    \bs{x}_t\bs{x}_t^\top - \bs{x}_t\E[\bs{z}_t^\top]\bs{C}^\top - \bs{C}\E[\bs{z}_t]\bs{x}_t^\top + \bs{C}\E[\bs{z}_t \bs{z}_t^\top]\bs{C}^\top
+  \Bigg\}
+  \end{aligned}
+</blog-math>
+<p>And <blog-math>\bs{C}</blog-math></p>
+<blog-math block>
+  \bs{C} = \Bigg(\sum_{t=1}^T \bs{x}_t \E[\bs{z}_t^\top]\Bigg)\Bigg(\sum_{t=1}^T \E[\bs{z}_t\bs{z}_t^\top]\Bigg)^{-1}
+</blog-math>
+<h2>Putting it all together</h2>
+Great, we have everything we need to start fitting data using an LDS and the kalman filter. Notice how to do our maximization step we must compute 3 quantities: <blog-math>\E[\bs{z}_t], \E[\bs{z}_t, \bs{z}_t^\top]</blog-math>, and <blog-math>\E[\bs{z}_t, \bs{z}_{t-1}^\top]</blog-math>. Thankfully we already have those quantities from when we computed the filter and smoother!
+<blog-math block>
+  \E[\bs{z}_n] = \hat{\bs{z}}_{t|t} \\
+  \E[\bs{z}_n \bs{z}_n^\top] = \bs{P}_{t|t} - \hat{\bs{z}}_{t|t}\hat{\bs{z}}_{t|t}^\top \\
+  \E[\bs{z}_n \bs{z}_{n-1}^\top] = \bs{P}_{t|t} - \hat{\bs{z}}_{t|t}\hat{\bs{z}}_{t-1|t-1}^\top
+</blog-math>
+
+<blog-appendix>
+  <blog-appendix-item key="gauss-cond" title="Conditional Gaussian Formulas">
+    <blog-math block>
+      \begin{bmatrix} \bs{a} \\ \bs{b} \end{bmatrix}=
+\bs{\mathcal{N}}
+\Bigg(
+    \begin{bmatrix} \bs{\mu}_a \\ \bs{\mu}_b\end{bmatrix},
+    \begin{bmatrix}
+        \bs{\Sigma}_{aa} & \bs{\Sigma}_{ab} \\
+        \bs{\Sigma}_{ba} & \bs{\Sigma}_{bb}
+    \end{bmatrix}
+\Bigg)
+    </blog-math>
+    <blog-math block>
+      \bs{a} \mid \bs{b} \sim
+\bs{\mathcal{N}}
+\big(\bs{\mu}_a + \bs{\Sigma}_{ab}\bs{\Sigma}_{bb}^{-1}(\bs{b} - \bs{\mu}_b), \bs{\Sigma}_{aa} - \bs{\Sigma}_{ab}\bs{\Sigma}_{bb}^{-1}\bs{\Sigma}_{ba}
+\big)
+    </blog-math>
+<blog-appendix-item key="grad-of-trace" title="Gradient of Trace">
+  <blog-math block>
+    \frac{d}{d\bs{X}}\text{Tr}(\bs{X}^{-1}\bs{A}) = -\bs{X}^{-\top}\bs{A}^\top\bs{X}^{-\top}
+  </blog-math>
+</blog-appendix-item>
+<blog-appendix-item key="quad-form-mean" title="Quadratic Form Derivative">
+  For symmetric <blog-math>\bs{M}</blog-math>
+  <blog-math block>
+    \frac{d}{d\bs{A}}(\bs{x} - \bs{As})^\top\bs{M}(\bs{x} - \bs{As}) = -2\bs{M}(\bs{x} - \bs{As})\bs{s}^\top
+  </blog-math>
+</blog-appendix-item>
+</blog-appendix>

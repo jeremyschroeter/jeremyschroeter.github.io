@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>An Introduction to Dynamical Systems Theory</title>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+    <link rel="bibliography" href="/assets/references.bib">
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Blog Components -->
+    <script defer src="/dist/blog-components.js"></script>
+    <!-- Competition Model Demo -->
+    <link rel="stylesheet" href="/assets/css/competition-model.css">
+    <script defer src="/assets/js/competition-model.js"></script>
+</head>
+<body id="post-page">
+<div class='content'>
+    <blog-nav></blog-nav>
+    <blog-header
+      title="An Introduction to Dynamical Systems Theory"
+      subtitle="Here I give a gentle introduction to dynamical systems, culminating in linearization as a tool to understand complex nonlinear dynamics."
+      date="2026-02-01">
+    </blog-header>
+<div class='wrap article'>
+<p>
+    Dynamical systems theory is an area of pure and applied mathematics which takes a unique approach to understanding the behavior of differential equations. Rather than caring deeply about solutions to ordinary and partial differential equations, dynamical systems theory instead seeks to rigorously describe the qualitative behavior of these systems.
+</p>
+
+<p>
+    What is a dynamical system?
+</p>
+
+<p>
+    A dynamical system is simply a way of describing how a system evolves in time. The system itself could be anything, a projectile obeying the laws of gravity, populations of animals competing for resources, a hurricane barelling through the Atlantic ocean. The theory is extremely general. Importantly we require that we can write down these dynamics like
+
+    <blog-math block>
+        \dot{\bs{x}} = \bs{f}(\bs{x})\qquad\bs{x}\in\Rn
+    </blog-math>
+    <blog-math block>
+        \bs{x} = \begin{bmatrix} x_1 \\ \vdots \\ x_n\end{bmatrix}
+        \qquad
+        \bs{f}(\bs{x}) = \begin{bmatrix} \bs{f}_1(\bs{x}) \\ \vdots \\ \bs{f}_n(\bs{x}) \end{bmatrix}
+    </blog-math>
+    Where <blog-math>\dot{\bs{x}}=\frac{d\bs{x}}{dt}</blog-math> is the time derivative of <blog-math>\bs{x}</blog-math> (how the system changes over time).
+</p>
+<p>
+    I've written the dynamical system out here in vector form, but this is just a convenient way of writing out a system of differential equations. We could equivalently write out the above equation like so
+    <blog-math block>
+        \begin{cases}
+        \dot{x}_1 = \bs{f}_1(\bs{x}) \\
+        \vdots \\
+        \dot{x}_n = \bs{f}_n(\bs{x})
+        \end{cases}
+    </blog-math>
+    
+    In words, the above equation says that the state of our system evolves according to some function <blog-math>\bs{f}</blog-math> which takes as input, our current state <blog-math>\bs{x}</blog-math> and outputs how the state changes over a very short (infinitesimal) period of time.
+</p>
+<p>
+    The best way to actually get a feel for dynamical systems is through an example. 
+</p>
+
+<h2>Population Growth</h2>
+<p>
+    To explore dynamical systems, we'll start with the historicaly important example of modeling population growth: the logistic model. Imagine you are an ecologist attempting to explain the size of the local rabbit population and so you want to model the number of rabbits in the population as a function of time. The most dead simple model you might come up with is that the growth rate is proportional to the size of the population.
+    <blog-math block>
+        \dot{N} = rN
+    </blog-math>
+    where <blog-math>N(t)</blog-math> is the population at time <blog-math>t</blog-math> and <blog-math>r > 0</blog-math> is the growth rate. The solution to this model is given by
+    <blog-math block>
+        N(t) = N_0e^{rt}
+    </blog-math>
+    where <blog-math>N_0</blog-math> is the size of the population at <blog-math>t=0</blog-math>. In words, this model predicts exponential growth.
+</p>
+<p>
+    Unbounded exponential growth is hardly realistic. The rabbit population will grow and grow, and then either due to limited resources, easier predation, or some other reason, we expect the growth to level off. One way to capture this is to assume that the per capita growth rate <blog-math>\frac{\dot{N}}{N}</blog-math> decreases as the population increases in size. That is, for small populations, we have exponential growth, but as our population gets bigger the growth rate slows. Eventually the growth rate may even become negative and our population will begin to shrink. The population size at which this occurs is called the carrying capacity <blog-math>K</blog-math>.
+</p>
+<p>
+    If we assume that the per-capita growth rate <blog-math>\frac{\dot{N}}{N}</blog-math> decreases linearly with <blog-math>N</blog-math>, then we get the logistic equation:
+    <blog-math block>
+        \dot{N} = rN\Bigg(1 - \frac{N}{K}\Bigg)
+    </blog-math>
+    The term on the right acts like a dampener on the population growth. As <blog-math>N</blog-math> gets larger so does its growth rate, but the term in the parentheses gets smaller, keeping it from growing uncontrollably. As <blog-math>N</blog-math> approaches <blog-math>K</blog-math>, the <blog-math>\dot{N}</blog-math> becomes <blog-math>0</blog-math> and the growth vanishes.
+</p>
+<p>
+    It can help here to get some visual intuition. Let's evolve the dynamics with <blog-math>K=100</blog-math>. We'll set <blog-math>N_0</blog-math> to different values and see how the system evolves.
+</p>
+
+    <blog-figure>
+        <img src="/assets/images/logistic_solutions.svg">
+        <figcaption>
+            Growth rate as a function of population size.
+        </figcaption>
+    </blog-figure>
+<p>
+    As designed, the populations grow or decay exponentially depending on intial conditions, but eventually saturate or relax onto the carrying capacity! This is great, but like I mentioned in the introduction, dynamical systems theory is less interested in particular solutions to the dynamical system (plots like the one above), and instead cares about ways of describing their qualitative behavior. One way to do this is to plot what's called a phase portrait. Here we are instead plotting the growth rate as a function of the population. Since <blog-math>\dot{N}</blog-math> is a quadratic polynomial in <blog-math>N</blog-math>, it is much easier to see the global system of the behavior.
+</p>
+<p>
+    Firstly, if <blog-math>N=0</blog-math>, then there is no population and so we get uninteresting dynamics, i.e. the population stays at <blog-math>0</blog-math>. This is easy to see on our phase portrait because it is where our curve intersects the x-axis. However, if our population is even a tiny bit above <blog-math>0</blog-math>, then <blog-math>\dot{N}</blog-math> is positive and so, by definition of the derivative, <blog-math>N</blog-math> must increase. This doesn't stop though, instead we <blog-math>N</blog-math> continues to grow and we achieve a maximum growth rate at <blog-math>N=\frac{K}{2}</blog-math>. After this, growth continues but begins to slow, until finally at <blog-math>N=K</blog-math>, we have another intersection point in which growth ceases. Notice however, that if we had started with <blog-math>N >K</blog-math> our initial growth rate would be negative. Instead of growth, our population would shrink back to <blog-math>K</blog-math>.
+</p>
+    <blog-figure>
+        <img src="/assets/images/logistic_growth_rate.svg">
+        <figcaption>
+            Growth rate as a function of population size.
+        </figcaption>
+    </blog-figure>
+<p>
+    We call these points where <blog-math>\dot{N}=0</blog-math> equilibrium points, or fixed points — states of our system for which things stop changing. These fixed points can have different kinds of stability. The fixed point at <blog-math>N=0</blog-math> for example, is called an unstable fixed point because any small deviation from it results in the dynamical system leaving that part of state space. The fixed point at <blog-math>N=K</blog-math> however is a stable fixed point, because any deviations from it bring the system right back. 
+</p>
+<p>
+    As we shall see, fixed points are one of the central objects of study in dynamical systems theory because the behavior of a system in the neighborhood around its fixed points can often tell us a lot about what is going on in the system globally.
+</p>
+
+<h2>Adding More Species</h2>
+<p>
+    What if we wanted to increase the complexity of our model. Say for example we wanted to model multiple species competing with one another? To do this we can make our system two dimensional and add another population, maybe of sheep. We'll assume that when rabbits and sheep interact they compete for grass, but that they compete assymetrically (sheep are bigger and scare off the rabbits). In addition, we'll assume that the two populatiosn have different carrying capacities. We can represent this dynamical system with two coupled logistic population models.
+    <blog-math block>
+            \dot{N}_1 = r_1N_1 \Bigg(1 - \frac{N_1 + \gamma_{12}N_2}{K_1}\Bigg) \\
+            \dot{N}_2 = r_2N_2 \Bigg(1 - \frac{N_2 + \gamma_{21}N_1}{K_2}\Bigg)
+    </blog-math>
+    This is exactly what we had before except that we have added the competition term given by <blog-math>\gamma_{12}N_2</blog-math> and <blog-math>\gamma_{21}N_1</blog-math>. The core idea behind these terms is that the greater the size of one population the more it can slow the growth of the other. The scaling factors <blog-math>\gamma</blog-math> capture how strong this effect is. One way to think about the model is that <blog-math>N_1 + \gamma_{12}N_2</blog-math> is the <i>effective population</i> for species <blog-math>1</blog-math>. If <blog-math>\gamma_{12}=2</blog-math> it would be as if every individual in species <blog-math>2</blog-math> was equivalent to <blog-math>2</blog-math> individuals in species <blog-math>1</blog-math>, at least with respect to how close the population is to its carrying capacity. We will gain more intuition for the model however, by analyzing it graphically.
+</p>
+    <blog-figure>
+        <img src="/assets/images/competition_phase_portrait.svg">
+        <figcaption>
+            Phase portrait of the competition model.
+        </figcaption>
+    </blog-figure>
+
+<p>
+    Below is an interactive version. Click anywhere to place a starting point and watch the trajectory evolve. You can drag the point around to explore different initial conditions.
+</p>
+
+<div class="demo-container">
+    <div class="demo-row">
+        <div class="phase-portrait">
+            <svg id="competition-svg"></svg>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <h4>Carrying Capacity</h4>
+                <div class="slider-row">
+                    <label><blog-math>K_1</blog-math></label>
+                    <input type="range" id="K1" min="20" max="150" step="5" value="100">
+                    <span class="value" id="K1-val">100</span>
+                </div>
+                <div class="slider-row">
+                    <label><blog-math>K_2</blog-math></label>
+                    <input type="range" id="K2" min="20" max="150" step="5" value="100">
+                    <span class="value" id="K2-val">100</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <h4>Competition Strength</h4>
+                <div class="slider-row">
+                    <label><blog-math>\gamma_{12}</blog-math></label>
+                    <input type="range" id="gamma12" min="0" max="2" step="0.1" value="0.5">
+                    <span class="value" id="gamma12-val">0.5</span>
+                </div>
+                <div class="slider-row">
+                    <label><blog-math>\gamma_{21}</blog-math></label>
+                    <input type="range" id="gamma21" min="0" max="2" step="0.1" value="0.5">
+                    <span class="value" id="gamma21-val">0.5</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-nullclines" checked>
+                    <span>Show nullclines</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    <p class="instructions">Click to place a starting point, then drag it around.</p>
+</div>
+
+<h2>Linear Systems</h2>
+<h2>Linearization</h2>
