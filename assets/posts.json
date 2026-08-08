@@ -1,5 +1,11 @@
 [
   {
+    "url": "/posts/shaving-the-yak-in-2026.html",
+    "title": "Shaving the Yak in 2026",
+    "subtitle": "",
+    "date": "2026-08-08"
+  },
+  {
     "url": "/posts/fishers-linear-discriminant.html",
     "title": "Fisher's Linear Discriminant",
     "subtitle": "An algorithm for finding the projection that best separates two classes.",

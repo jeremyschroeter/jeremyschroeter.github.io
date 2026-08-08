@@ -22216,6 +22216,1997 @@ var BlogComponents = (function (exports) {
 
   customElements.define('blog-post-list', BlogPostList);
 
+  /**
+   * <blog-turing-machine> Component
+   * An interactive Turing machine: tape, state diagram, and transition table,
+   * all driven by the same rule set and highlighted in lockstep as you step.
+   *
+   * Usage:
+   * <blog-turing-machine
+   *     tape="abba"
+   *     start="start"
+   *     accept="accept"
+   *     reject="reject"
+   *     layout="start:70,200; haveA:210,90"
+   *     curve="start>accept:-150">
+   *   # state, read -> next, write, move      (move is L, R or N)
+   *   start, a -> haveA, _, R
+   *   start, _ -> accept, _, R
+   * </blog-turing-machine>
+   *
+   * `_` is the blank symbol (configurable via the blank attribute). Blank cells
+   * render empty on the tape and as the blank-display glyph elsewhere.
+   *
+   * layout places diagram nodes; unplaced states fall back to a circle.
+   * curve bows an edge sideways by N pixels, for routing around nodes.
+   * Self-loops bulge away from the centre of the graph.
+   */
+
+  const CELL_W = 36;
+  const MOVES = { L: -1, R: 1, N: 0 };
+  const RULE_RE = /^([A-Za-z0-9_-]+)\s*,\s*(\S+)\s*->\s*([A-Za-z0-9_-]+)\s*,\s*(\S+)\s*,\s*([LRN])$/i;
+
+  // Diagram geometry
+  const NODE_RY = 18;
+  const LOOP_R = 58;
+  const ARROW_GAP = 4;
+  const CHAR_W = 6.4;
+  const LINE_H = 13;
+
+  let uid = 0;
+
+  class BlogTuringMachine extends HTMLElement {
+    connectedCallback() {
+      if (this._spec === undefined) this._spec = this.textContent;
+
+      this.parseSpec();
+      if (!this.startState) {
+        console.warn('<blog-turing-machine> needs a start attribute');
+        return;
+      }
+
+      this.arrowId = `tm-arrow-${++uid}`;
+      this.render();
+      this.reset();
+    }
+
+    disconnectedCallback() {
+      this.pause();
+    }
+
+    /* ---------------------------------------------------------------- spec */
+
+    parseSpec() {
+      this.blank = this.getAttribute('blank') || '_';
+      this.blankGlyph = this.getAttribute('blank-display') || '⊔';
+      this.startState = this.getAttribute('start');
+
+      this.halting = new Map(); // state -> 'accept' | 'reject'
+      for (const s of splitList(this.getAttribute('accept'))) this.halting.set(s, 'accept');
+      for (const s of splitList(this.getAttribute('reject'))) this.halting.set(s, 'reject');
+
+      this.verdicts = {
+        accept: this.getAttribute('accept-message') || 'Accepted.',
+        reject: this.getAttribute('reject-message') || 'Rejected.',
+        halt: 'Halted — no transition for this state and symbol.'
+      };
+
+      this.rules = new Map(); // state -> Map(read -> {to, write, move})
+      const states = new Set(this.startState ? [this.startState] : []);
+      const symbols = new Set();
+
+      for (const raw of this._spec.split('\n')) {
+        const line = raw.split('#')[0].trim();
+        if (!line) continue;
+
+        const m = line.match(RULE_RE);
+        if (!m) {
+          console.warn('<blog-turing-machine> ignoring unparsable rule:', line);
+          continue;
+        }
+
+        const [, from, read, to, write, moveLetter] = m;
+        if (!this.rules.has(from)) this.rules.set(from, new Map());
+        this.rules.get(from).set(read, { to, write, move: MOVES[moveLetter.toUpperCase()] });
+
+        states.add(from).add(to);
+        symbols.add(read).add(write);
+      }
+
+      // Halting states sort last, so the diagram and table read left to right.
+      this.states = [...states].sort((a, b) => (this.halting.has(a) ? 1 : 0) - (this.halting.has(b) ? 1 : 0));
+
+      symbols.delete(this.blank);
+      this.alphabet = [...symbols].sort();
+      this.symbols = [...this.alphabet, this.blank];
+    }
+
+    parseLayout() {
+      const positions = new Map();
+      for (const entry of (this.getAttribute('layout') || '').split(';')) {
+        const m = entry.trim().match(/^([\w-]+)\s*:\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)$/);
+        if (m) positions.set(m[1], { x: +m[2], y: +m[3] });
+      }
+
+      const missing = this.states.filter((s) => !positions.has(s));
+      const radius = Math.max(120, missing.length * 26);
+      missing.forEach((name, i) => {
+        const a = (2 * Math.PI * i) / missing.length - Math.PI / 2;
+        positions.set(name, { x: radius * (1 + Math.cos(a)), y: radius * (1 + Math.sin(a)) });
+      });
+
+      return positions;
+    }
+
+    parseCurves() {
+      const curves = new Map();
+      for (const entry of (this.getAttribute('curve') || '').split(';')) {
+        const m = entry.trim().match(/^([\w-]+)\s*>\s*([\w-]+)\s*:\s*(-?[\d.]+)$/);
+        if (m) curves.set(`${m[1]}|${m[2]}`, +m[3]);
+      }
+      return curves;
+    }
+
+    /* -------------------------------------------------------------- machine */
+
+    reset() {
+      this.pause();
+
+      this.tape = new Map();
+      [...this.inputEl.value].forEach((sym, i) => this.tape.set(i, sym));
+
+      this.head = 0;
+      this.state = this.startState;
+      this.steps = 0;
+      this.status = 'ready';
+
+      this.minIdx = 0;
+      this.maxIdx = 0;
+      this.ensureRange(this.head);
+      this.update({ animate: false });
+    }
+
+    /** The rule that will fire on the next step, or null if the machine is stuck. */
+    get pendingRule() {
+      if (this.status in this.verdicts) return null;
+      return this.rules.get(this.state)?.get(this.readSymbol) ?? null;
+    }
+
+    get readSymbol() {
+      return this.tape.get(this.head) ?? this.blank;
+    }
+
+    step() {
+      const rule = this.pendingRule;
+      if (!rule) {
+        if (!(this.status in this.verdicts)) {
+          this.setStatus('halt');
+          this.update({ animate: false });
+        }
+        return false;
+      }
+
+      if (rule.write === this.blank) this.tape.delete(this.head);
+      else this.tape.set(this.head, rule.write);
+
+      const from = this.head;
+      this.head += rule.move;
+      this.state = rule.to;
+      this.steps++;
+
+      const halt = this.halting.get(this.state);
+      this.setStatus(halt ?? (this.timer ? 'running' : 'ready'));
+
+      this.ensureRange(from);
+      this.update({ animate: true });
+      return !halt;
+    }
+
+    setStatus(status) {
+      this.status = status;
+      if (status in this.verdicts) this.pause();
+    }
+
+    run() {
+      if (this.timer || !this.pendingRule) return;
+      this.status = 'running';
+      this.timer = setInterval(() => this.step(), 1000 / Number(this.speedEl.value));
+      this.syncControls();
+    }
+
+    pause() {
+      if (!this.timer) return;
+      clearInterval(this.timer);
+      this.timer = null;
+      if (this.status === 'running') this.status = 'ready';
+      if (this.runBtn) this.syncControls();
+    }
+
+    toggleRun() {
+      if (this.timer) this.pause();
+      else this.run();
+    }
+
+    /* --------------------------------------------------------------- render */
+
+    render() {
+      const showDiagram = !this.hasAttribute('no-diagram');
+      const showTable = !this.hasAttribute('no-table');
+
+      this.innerHTML = `
+      <div class="tm">
+        <div class="tm-tape">
+          <div class="tm-head" aria-hidden="true"></div>
+          <div class="tm-strip"></div>
+        </div>
+
+        <div class="tm-bar">
+          <div class="tm-readout">
+            <span class="tm-chip">
+              <span class="tm-chip-key">state</span>
+              <span class="tm-state-name"></span>
+            </span>
+            <span class="tm-chip">
+              <span class="tm-chip-key">read</span>
+              <span class="tm-read-sym"></span>
+            </span>
+            <span class="tm-chip">
+              <span class="tm-chip-key">steps</span>
+              <span class="tm-step-count"></span>
+            </span>
+          </div>
+
+          <div class="tm-controls">
+            <button type="button" class="tm-btn" data-act="step">Step</button>
+            <button type="button" class="tm-btn tm-btn-primary" data-act="run">Run</button>
+            <button type="button" class="tm-btn" data-act="reset">Reset</button>
+          </div>
+        </div>
+
+        <div class="tm-bar tm-bar-inputs">
+          <label class="tm-field">
+            <span>Input</span>
+            <input class="tm-input" type="text" spellcheck="false" autocomplete="off"
+                   value="${escapeAttr$1(this.getAttribute('tape') || '')}">
+          </label>
+          <label class="tm-field tm-field-speed">
+            <span>Speed</span>
+            <input class="tm-speed" type="range" min="1" max="20" step="1" value="6">
+          </label>
+        </div>
+
+        <div class="tm-verdict" aria-live="polite"></div>
+
+        ${showDiagram ? '<div class="tm-diagram"></div>' : ''}
+        ${showTable ? '<div class="tm-table-wrap"></div>' : ''}
+
+        <p class="tm-legend">
+          Labels read <span class="tm-mono">read → write, move</span>, with the written symbol
+          omitted where the cell is left unchanged. <span class="tm-mono">${this.blankGlyph}</span>
+          is the blank symbol. Type any string of
+          <span class="tm-mono">${this.alphabet.join('')}</span> into the input to try your own.
+        </p>
+      </div>
+    `;
+
+      this.stripEl = this.querySelector('.tm-strip');
+      this.inputEl = this.querySelector('.tm-input');
+      this.speedEl = this.querySelector('.tm-speed');
+      this.runBtn = this.querySelector('[data-act="run"]');
+      this.stepBtn = this.querySelector('[data-act="step"]');
+      this.verdictEl = this.querySelector('.tm-verdict');
+      this.stateNameEl = this.querySelector('.tm-state-name');
+      this.readSymEl = this.querySelector('.tm-read-sym');
+      this.stepCountEl = this.querySelector('.tm-step-count');
+
+      if (showDiagram) this.renderDiagram();
+      if (showTable) this.renderTable();
+
+      this.stepBtn.addEventListener('click', () => {
+        this.pause();
+        this.step();
+      });
+      this.runBtn.addEventListener('click', () => this.toggleRun());
+      this.querySelector('[data-act="reset"]').addEventListener('click', () => this.reset());
+
+      this.speedEl.addEventListener('input', () => {
+        if (!this.timer) return;
+        this.pause();
+        this.run();
+      });
+
+      this.inputEl.addEventListener('input', () => {
+        const valid = [...this.inputEl.value].every((c) => this.alphabet.includes(c));
+        this.inputEl.classList.toggle('is-invalid', !valid);
+        if (valid) this.reset();
+      });
+    }
+
+    /**
+     * Grow the rendered window when the head nears either end. A rebuild shifts
+     * every cell, so re-anchor the strip on `anchor` first; update() then slides
+     * from there to the new head position.
+     */
+    ensureRange(anchor) {
+      const margin = 14;
+      const before = `${this.minIdx}:${this.maxIdx}`;
+
+      while (this.head - this.minIdx < margin) this.minIdx -= 20;
+      while (this.maxIdx - this.head < margin) this.maxIdx += 20;
+
+      if (`${this.minIdx}:${this.maxIdx}` === before && this.stripEl.childElementCount) return;
+
+      let html = '';
+      for (let i = this.minIdx; i <= this.maxIdx; i++) html += `<div class="tm-cell" data-i="${i}"></div>`;
+      this.stripEl.innerHTML = html;
+
+      this.placeStrip(anchor, false);
+    }
+
+    placeStrip(index, animate) {
+      this.stripEl.style.transition = animate ? '' : 'none';
+      this.stripEl.style.transform = `translateX(${-(index - this.minIdx) * CELL_W}px)`;
+      if (!animate) void this.stripEl.offsetWidth; // flush, so the next move animates
+    }
+
+    update({ animate }) {
+      for (const cell of this.stripEl.children) {
+        const i = +cell.dataset.i;
+        cell.textContent = this.tape.get(i) ?? '';
+        cell.classList.toggle('is-head', i === this.head);
+      }
+
+      this.placeStrip(this.head, animate);
+
+      this.stateNameEl.textContent = this.state;
+      this.stateNameEl.className = `tm-state-name ${statusClass(this.halting.get(this.state))}`;
+      this.readSymEl.textContent = this.glyph(this.readSymbol);
+      this.stepCountEl.textContent = this.steps;
+
+      this.verdictEl.textContent = this.verdicts[this.status] ?? '';
+      this.verdictEl.className = `tm-verdict ${statusClass(this.status)}`;
+
+      this.syncControls();
+      this.highlight();
+    }
+
+    syncControls() {
+      const stuck = !this.pendingRule;
+      this.runBtn.textContent = this.timer ? 'Pause' : 'Run';
+      this.runBtn.disabled = stuck;
+      this.stepBtn.disabled = stuck;
+    }
+
+    /** Light up the rule about to fire, in both the diagram and the table. */
+    highlight() {
+      for (const el of this.querySelectorAll('.is-firing, .is-current')) {
+        el.classList.remove('is-firing', 'is-current');
+      }
+
+      const rule = this.pendingRule;
+      if (rule) {
+        for (const el of this.querySelectorAll(`[data-rule="${attrSel(`${this.state}|${this.readSymbol}`)}"]`)) {
+          el.classList.add('is-firing');
+        }
+        const edge = this.querySelector(`[data-edge="${attrSel(`${this.state}|${rule.to}`)}"]`);
+        if (edge) edge.classList.add('is-firing');
+      }
+
+      for (const el of this.querySelectorAll(`[data-state="${attrSel(this.state)}"]`)) {
+        el.classList.add('is-current');
+      }
+    }
+
+    /* -------------------------------------------------------------- diagram */
+
+    renderDiagram() {
+      const positions = this.parseLayout();
+      const curves = this.parseCurves();
+
+      const nodes = new Map(
+        this.states.map((name) => {
+          const { x, y } = positions.get(name);
+          return [name, { name, x, y, rx: name.length * 3.5 + 14, ry: NODE_RY, kind: this.halting.get(name) }];
+        })
+      );
+
+      // One edge per (from, to) pair; parallel rules stack as label lines.
+      const edges = new Map();
+      for (const [from, byRead] of this.rules) {
+        for (const [read, { to, write, move }] of byRead) {
+          const key = `${from}|${to}`;
+          if (!edges.has(key)) edges.set(key, { from, to, labels: [] });
+          const written = write === read ? '' : `${this.glyph(write)}, `;
+          const moveLetter = move > 0 ? 'R' : move < 0 ? 'L' : 'N';
+          edges.get(key).labels.push({
+            rule: `${from}|${read}`,
+            text: `${this.glyph(read)} → ${written}${moveLetter}`
+          });
+        }
+      }
+
+      const cx = mean([...nodes.values()].map((n) => n.x));
+      const cy = mean([...nodes.values()].map((n) => n.y));
+
+      const bounds = new Bounds();
+      for (const n of nodes.values()) bounds.add(n.x - n.rx, n.y - n.ry).add(n.x + n.rx, n.y + n.ry);
+
+      let paths = '';
+      let labels = '';
+
+      for (const edge of edges.values()) {
+        const a = nodes.get(edge.from);
+        const b = nodes.get(edge.to);
+        const reciprocal = edges.has(`${edge.to}|${edge.from}`);
+        const curve = curves.get(`${edge.from}|${edge.to}`) ?? (reciprocal ? 24 : 0);
+
+        const geom =
+          edge.from === edge.to
+            ? selfLoop(a, Math.atan2(a.y - cy, a.x - cx))
+            : bezier(a, b, curve);
+
+        for (const [x, y] of geom.extent) bounds.add(x, y);
+
+        paths +=
+          `<path class="tm-edge" data-edge="${escapeAttr$1(`${edge.from}|${edge.to}`)}"` +
+          ` d="${geom.d}" marker-end="url(#${this.arrowId})"/>`;
+        labels += this.edgeLabel(edge.labels, geom.labelX, geom.labelY, bounds);
+      }
+
+      let circles = '';
+      for (const n of nodes.values()) {
+        circles += `
+        <g class="tm-node ${statusClass(n.kind)}" data-state="${escapeAttr$1(n.name)}">
+          ${n.kind ? `<ellipse class="tm-node-ring" cx="${n.x}" cy="${n.y}" rx="${n.rx + 4}" ry="${n.ry + 4}"/>` : ''}
+          <ellipse class="tm-node-body" cx="${n.x}" cy="${n.y}" rx="${n.rx}" ry="${n.ry}"/>
+          <text class="tm-node-text" x="${n.x}" y="${n.y}">${escapeHtml$1(n.name)}</text>
+        </g>`;
+      }
+
+      const pad = 14;
+      const w = bounds.maxX - bounds.minX + pad * 2;
+      const h = bounds.maxY - bounds.minY + pad * 2;
+
+      this.querySelector('.tm-diagram').innerHTML = `
+      <svg viewBox="${r(bounds.minX - pad)} ${r(bounds.minY - pad)} ${r(w)} ${r(h)}"
+           role="img" aria-label="State diagram of the transition function"
+           style="max-width:${Math.round(w)}px">
+        <defs>
+          <marker id="${this.arrowId}" viewBox="0 0 8 8" refX="7" refY="4"
+                  markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0.5 L8,4 L0,7.5 z"/>
+          </marker>
+        </defs>
+        ${paths}
+        ${labels}
+        ${circles}
+      </svg>
+    `;
+    }
+
+    edgeLabel(lines, x, y, bounds) {
+      const w = Math.max(...lines.map((l) => l.text.length)) * CHAR_W + 8;
+      const h = lines.length * LINE_H + 4;
+      const top = y - h / 2;
+
+      bounds.add(x - w / 2, top).add(x + w / 2, top + h);
+
+      const texts = lines
+        .map(
+          (l, i) =>
+            `<text class="tm-edge-label" data-rule="${escapeAttr$1(l.rule)}"` +
+            ` x="${r(x)}" y="${r(top + 2 + LINE_H * (i + 0.5))}">${escapeHtml$1(l.text)}</text>`
+        )
+        .join('');
+
+      return `<g class="tm-label"><rect x="${r(x - w / 2)}" y="${r(top)}" width="${r(w)}" height="${r(h)}" rx="3"/>${texts}</g>`;
+    }
+
+    glyph(sym) {
+      return sym === this.blank ? this.blankGlyph : sym;
+    }
+
+    /* ---------------------------------------------------------------- table */
+
+    renderTable() {
+      const head = this.symbols.map((s) => `<th>${escapeHtml$1(this.glyph(s))}</th>`).join('');
+
+      const rows = this.states
+        .filter((s) => this.rules.has(s))
+        .map((state) => {
+          const cells = this.symbols
+            .map((sym) => {
+              const rule = this.rules.get(state).get(sym);
+              if (!rule) return '<td class="tm-cell-empty">—</td>';
+              const moveLetter = rule.move > 0 ? 'R' : rule.move < 0 ? 'L' : 'N';
+              return (
+                `<td data-rule="${escapeAttr$1(`${state}|${sym}`)}">` +
+                `${escapeHtml$1(rule.to)}, ${escapeHtml$1(this.glyph(rule.write))}, ${moveLetter}</td>`
+              );
+            })
+            .join('');
+          return `<tr><th data-state="${escapeAttr$1(state)}">${escapeHtml$1(state)}</th>${cells}</tr>`;
+        })
+        .join('');
+
+      this.querySelector('.tm-table-wrap').innerHTML = `
+      <table class="tm-table">
+        <thead><tr><th class="tm-corner"></th>${head}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    }
+  }
+
+  /* ------------------------------------------------------------- geometry */
+
+  /** Where the ray from a node's centre toward (tx, ty) crosses its ellipse. */
+  function boundary(node, tx, ty) {
+    const dx = tx - node.x;
+    const dy = ty - node.y;
+    const s = 1 / Math.hypot(dx / node.rx, dy / node.ry);
+    return [node.x + dx * s, node.y + dy * s];
+  }
+
+  /** Pull a path tip back toward its control point so the arrowhead clears the node. */
+  function retract(x, y, cx, cy) {
+    const d = Math.hypot(cx - x, cy - y) || 1;
+    return [x + ((cx - x) / d) * ARROW_GAP, y + ((cy - y) / d) * ARROW_GAP];
+  }
+
+  /** A quadratic bezier from a to b, bowed sideways by `curve` pixels. */
+  function bezier(a, b, curve) {
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const cx = (a.x + b.x) / 2 - ((b.y - a.y) / len) * curve;
+    const cy = (a.y + b.y) / 2 + ((b.x - a.x) / len) * curve;
+
+    const [x0, y0] = boundary(a, cx, cy);
+    const [x2, y2] = retract(...boundary(b, cx, cy), cx, cy);
+
+    return {
+      d: `M${r(x0)},${r(y0)} Q${r(cx)},${r(cy)} ${r(x2)},${r(y2)}`,
+      labelX: 0.25 * x0 + 0.5 * cx + 0.25 * x2,
+      labelY: 0.25 * y0 + 0.5 * cy + 0.25 * y2,
+      extent: [[x0, y0], [x2, y2], [cx, cy]]
+    };
+  }
+
+  /** A cubic loop leaving and re-entering the node, bulging away from the graph centre. */
+  function selfLoop(node, angle) {
+    const spread = Math.PI / 3;
+    const [x0, y0] = boundary(node, node.x + Math.cos(angle - spread), node.y + Math.sin(angle - spread));
+    const [x3, y3] = boundary(node, node.x + Math.cos(angle + spread), node.y + Math.sin(angle + spread));
+
+    const ux = Math.cos(angle);
+    const uy = Math.sin(angle);
+    const px = -uy;
+    const py = ux;
+
+    const c1x = node.x + ux * LOOP_R - px * LOOP_R * 0.8;
+    const c1y = node.y + uy * LOOP_R - py * LOOP_R * 0.8;
+    const c2x = node.x + ux * LOOP_R + px * LOOP_R * 0.8;
+    const c2y = node.y + uy * LOOP_R + py * LOOP_R * 0.8;
+
+    const [tipX, tipY] = retract(x3, y3, c2x, c2y);
+
+    return {
+      d: `M${r(x0)},${r(y0)} C${r(c1x)},${r(c1y)} ${r(c2x)},${r(c2y)} ${r(tipX)},${r(tipY)}`,
+      labelX: 0.125 * x0 + 0.375 * c1x + 0.375 * c2x + 0.125 * tipX,
+      labelY: 0.125 * y0 + 0.375 * c1y + 0.375 * c2y + 0.125 * tipY,
+      extent: [[c1x, c1y], [c2x, c2y]]
+    };
+  }
+
+  class Bounds {
+    constructor() {
+      this.minX = Infinity;
+      this.minY = Infinity;
+      this.maxX = -Infinity;
+      this.maxY = -Infinity;
+    }
+
+    add(x, y) {
+      this.minX = Math.min(this.minX, x);
+      this.minY = Math.min(this.minY, y);
+      this.maxX = Math.max(this.maxX, x);
+      this.maxY = Math.max(this.maxY, y);
+      return this;
+    }
+  }
+
+  /* ---------------------------------------------------------------- helpers */
+
+  const statusClass = (kind) => (kind ? `is-${kind}` : '');
+  const splitList = (v) => (v || '').split(/[,\s]+/).filter(Boolean);
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+  const r = (n) => Math.round(n * 10) / 10;
+
+  const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+  const escapeHtml$1 = (s) => String(s).replace(/[&<>]/g, (c) => ESC[c]);
+  const escapeAttr$1 = (s) => String(s).replace(/[&<>"]/g, (c) => ESC[c]);
+  const attrSel = (s) => String(s).replace(/["\\]/g, '\\$&');
+
+  customElements.define('blog-turing-machine', BlogTuringMachine);
+
+  /**
+   * <blog-hopfield> Component
+   * A continuous Hopfield network (Hopfield 1984) storing 64x64 images.
+   *
+   * Corrupt the state and the network's dynamics flow downhill in energy until
+   * they settle into the nearest stored memory. Memory is an attractor, not a
+   * lookup: the computation *is* the relaxation.
+   *
+   *   tau du/dt = -u + W V        V = tanh(u / u0)
+   *
+   * With N = 4096 neurons the weight matrix W would hold 16.7M entries. It is
+   * never built. Both learning rules are low rank in the P stored patterns, so
+   * W V costs O(N P) instead of O(N^2):
+   *
+   *   Hebbian      W = (1/N) (X X^T - P I)      W V = X m / N - (P/N) V
+   *   Projection   W = X (X^T X)^-1 X^T         W V = X (G^-1 m)
+   *
+   * where X is N x P and m = X^T V. Hebbian is the default: it is the rule the
+   * essay motivates, and it recalls the stored patterns exactly so long as they
+   * stay close to orthogonal (see scripts/generate-hopfield-patterns.py). The
+   * projection rule tolerates correlated memories and is available via rule=".
+   *
+   * Usage:
+   * <blog-hopfield src="/assets/hopfield-patterns.json"></blog-hopfield>
+   */
+
+  const DT = 0.1;
+  const SETTLE_TOL = 2e-4;
+  const TRACE_LEN = 320;
+  const BRUSH = 1; // radius in cells, so a 3x3 nib
+
+  class BlogHopfield extends HTMLElement {
+    connectedCallback() {
+      this.rule = this.getAttribute('rule') || 'hebbian';
+      this.u0 = Number(this.getAttribute('gain')) || 0.12;
+      this.src = this.getAttribute('src') || '/assets/hopfield-patterns.json';
+
+      this.renderShell();
+      this.load();
+    }
+
+    disconnectedCallback() {
+      this.pause();
+    }
+
+    async load() {
+      try {
+        const res = await fetch(this.src);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        this.ingest(await res.json());
+      } catch (err) {
+        console.error('<blog-hopfield> could not load patterns:', err);
+        this.querySelector('.hp').innerHTML =
+          `<p class="hp-error">Could not load memories from <code>${this.src}</code>.</p>`;
+        return;
+      }
+
+      this.buildUI();
+      this.loadMemory(0);
+      this.corrupt();
+    }
+
+    /* ----------------------------------------------------------------- setup */
+
+    ingest(data) {
+      this.size = data.size;
+      this.N = this.size * this.size;
+      this.names = data.patterns.map((p) => p.name);
+      this.P = data.patterns.length;
+
+      // Each pattern is a bipolar vector, unpacked from one bit per pixel.
+      this.X = data.patterns.map((p) => {
+        const bytes = Uint8Array.from(atob(p.bits), (c) => c.charCodeAt(0));
+        const v = new Float32Array(this.N);
+        for (let i = 0; i < this.N; i++) {
+          v[i] = (bytes[i >> 3] >> (7 - (i & 7))) & 1 ? 1 : -1;
+        }
+        return v;
+      });
+
+      this.Ginv = invert(
+        this.X.map((a) => this.X.map((b) => dot(a, b))) // Gram matrix X^T X
+      );
+
+      this.u = new Float32Array(this.N);
+      this.V = new Float32Array(this.N);
+      this.h = new Float32Array(this.N);
+      this.m = new Float64Array(this.P);
+      this.c = new Float64Array(this.P);
+      this.cue = new Float32Array(this.N);
+      this.trace = [];
+      this.steps = 0;
+    }
+
+    /* -------------------------------------------------------------- dynamics */
+
+    /**
+     * Project the current state onto the stored patterns: m = X^T V, and the
+     * coefficients c that reconstruct the field from them. Both the field and the
+     * energy need these, and both must see the *current* V.
+     */
+    coeffs() {
+      const { X, P, N, V, m, c } = this;
+
+      for (let p = 0; p < P; p++) m[p] = dot(X[p], V);
+
+      if (this.rule === 'hebbian') {
+        for (let p = 0; p < P; p++) c[p] = m[p] / N;
+      } else {
+        for (let p = 0; p < P; p++) {
+          let s = 0;
+          for (let q = 0; q < P; q++) s += this.Ginv[p][q] * m[q];
+          c[p] = s;
+        }
+      }
+    }
+
+    /** Field h = W V, computed in the low-rank basis of the stored patterns. */
+    field() {
+      const { X, P, N, V, h, c } = this;
+      this.coeffs();
+
+      h.fill(0);
+      for (let p = 0; p < P; p++) {
+        const xp = X[p];
+        const cp = c[p];
+        for (let i = 0; i < N; i++) h[i] += xp[i] * cp;
+      }
+
+      // The Hebbian rule has no self-connections; subtract the diagonal it would
+      // otherwise carry, W_ii = P/N.
+      if (this.rule === 'hebbian') {
+        const d = P / N;
+        for (let i = 0; i < N; i++) h[i] -= d * V[i];
+      }
+    }
+
+    step() {
+      const { u, V, h, N, u0 } = this;
+      this.field();
+
+      let maxDelta = 0;
+      for (let i = 0; i < N; i++) {
+        const du = DT * (-u[i] + h[i]);
+        u[i] += du;
+        V[i] = Math.tanh(u[i] / u0);
+        const a = du < 0 ? -du : du;
+        if (a > maxDelta) maxDelta = a;
+      }
+
+      this.steps++;
+      this.settled = maxDelta < SETTLE_TOL;
+      this.pushTrace();
+      return this.settled;
+    }
+
+    /** One trace sample per integration step, so the plot is speed-invariant. */
+    pushTrace() {
+      this.trace.push(this.energy());
+      if (this.trace.length > TRACE_LEN) this.trace.shift();
+    }
+
+    /**
+     * Lyapunov energy for the graded-response network. The second term is the
+     * integral of the inverse gain function, which keeps E finite as V -> +-1.
+     */
+    energy() {
+      const { u, V, N, u0, m, c } = this;
+      this.coeffs(); // m and c must describe the current V, not the previous step's
+
+      let quad = 0;
+      for (let p = 0; p < this.P; p++) quad += c[p] * m[p];
+      if (this.rule === 'hebbian') {
+        let vv = 0;
+        for (let i = 0; i < N; i++) vv += V[i] * V[i];
+        quad -= (this.P / N) * vv;
+      }
+
+      let leak = 0;
+      for (let i = 0; i < N; i++) leak += u[i] * V[i] - u0 * lncosh(u[i] / u0);
+
+      return (-0.5 * quad + leak) / N;
+    }
+
+    overlaps() {
+      return this.X.map((x) => dot(x, this.V) / this.N);
+    }
+
+    /* ----------------------------------------------------------- state setup */
+
+    setState(vec, remember = true) {
+      this.pause();
+      for (let i = 0; i < this.N; i++) {
+        this.u[i] = vec[i];
+        this.V[i] = Math.tanh(this.u[i] / this.u0);
+      }
+      if (remember) this.cue.set(this.u);
+      this.steps = 0;
+      this.settled = false;
+      this.trace = [];
+      this.pushTrace();
+      this.draw();
+    }
+
+    loadMemory(index) {
+      this.cueIndex = index;
+      this.setState(this.X[index]);
+    }
+
+    corrupt() {
+      const frac = Number(this.noiseEl.value) / 100;
+      const v = Float32Array.from(this.cue);
+      for (let k = 0; k < Math.round(frac * this.N); k++) {
+        const i = (Math.random() * this.N) | 0;
+        v[i] = -v[i];
+      }
+      this.setState(v, false);
+    }
+
+    occlude() {
+      const v = Float32Array.from(this.cue);
+      // 40% is the most the Hebbian net recovers from for every stored memory;
+      // erase more of a standing figure and it lands in a spurious state.
+      const from = Math.round(this.size * 0.6);
+      for (let y = from; y < this.size; y++) {
+        for (let x = 0; x < this.size; x++) v[y * this.size + x] = -1;
+      }
+      this.setState(v, false);
+    }
+
+    randomize() {
+      const v = new Float32Array(this.N);
+      for (let i = 0; i < this.N; i++) v[i] = Math.random() < 0.5 ? -1 : 1;
+      this.cueIndex = -1;
+      this.setState(v);
+    }
+
+    /* ------------------------------------------------------------------- run */
+
+    run() {
+      if (this.raf) return;
+      this.acc = 0;
+
+      // The speed slider can ask for less than one step per frame, so carry the
+      // fractional remainder across frames instead of rounding it away.
+      const tick = () => {
+        this.acc += Number(this.speedEl.value);
+        while (this.acc >= 1 && !this.settled) {
+          this.step();
+          this.acc -= 1;
+        }
+        this.draw();
+        if (this.settled) this.pause();
+        else this.raf = requestAnimationFrame(tick);
+      };
+
+      this.raf = requestAnimationFrame(tick);
+      this.syncControls();
+    }
+
+    pause() {
+      if (!this.raf) return;
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+      this.syncControls();
+    }
+
+    toggleRun() {
+      if (this.raf) this.pause();
+      else if (!this.settled) this.run();
+    }
+
+    /* ---------------------------------------------------------------- render */
+
+    renderShell() {
+      this.innerHTML = `<div class="hp"><p class="hp-loading">Loading memories…</p></div>`;
+    }
+
+    buildUI() {
+      const px = this.size;
+      this.querySelector('.hp').innerHTML = `
+      <div class="hp-main">
+        <div class="hp-stage">
+          <canvas class="hp-canvas" width="${px}" height="${px}"
+                  aria-label="Network state, ${px} by ${px} neurons"></canvas>
+          <p class="hp-hint">Drag on the image to corrupt it. Hold <kbd>shift</kbd> to erase.</p>
+        </div>
+
+        <div class="hp-side">
+          <div class="hp-memories">
+            <span class="hp-label">Memories</span>
+            <div class="hp-thumbs">
+              ${this.names
+                .map(
+                  (n, i) =>
+                    `<button type="button" class="hp-thumb" data-mem="${i}" title="Load ${n}">
+                       <canvas width="${px}" height="${px}" aria-label="${n}"></canvas>
+                     </button>`
+                )
+                .join('')}
+            </div>
+          </div>
+
+          <div class="hp-overlaps">
+            <span class="hp-label">Overlap</span>
+            ${this.names
+              .map(
+                (n, i) => `
+              <div class="hp-bar-row" data-ov="${i}">
+                <span class="hp-bar-name">${n}</span>
+                <span class="hp-bar-track"><span class="hp-bar-fill"></span></span>
+                <span class="hp-bar-val">0.00</span>
+              </div>`
+              )
+              .join('')}
+          </div>
+
+          <div class="hp-energy">
+            <span class="hp-label">Energy</span>
+            <canvas class="hp-trace" width="${TRACE_LEN}" height="46"
+                    aria-label="Energy over time"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="hp-bar">
+        <div class="hp-readout">
+          <span class="hp-chip"><span class="hp-chip-key">step</span><span class="hp-steps">0</span></span>
+          <span class="hp-chip"><span class="hp-chip-key">energy</span><span class="hp-e">0</span></span>
+          <span class="hp-chip hp-status"></span>
+        </div>
+        <div class="hp-controls">
+          <button type="button" class="hp-btn" data-act="step">Step</button>
+          <button type="button" class="hp-btn hp-btn-primary" data-act="run">Run</button>
+          <button type="button" class="hp-btn" data-act="reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="hp-bar hp-bar-inputs">
+        <label class="hp-field">
+          <span>Speed</span>
+          <input class="hp-speed" type="range" min="0.25" max="6" step="0.25" value="2">
+        </label>
+        <label class="hp-field">
+          <span>Noise</span>
+          <input class="hp-noise" type="range" min="0" max="40" step="5" value="30">
+          <span class="hp-noise-val">30%</span>
+        </label>
+        <div class="hp-actions">
+          <button type="button" class="hp-btn hp-btn-sm" data-act="corrupt">Corrupt</button>
+          <button type="button" class="hp-btn hp-btn-sm" data-act="occlude">Occlude</button>
+          <button type="button" class="hp-btn hp-btn-sm" data-act="random">Random</button>
+        </div>
+      </div>
+
+      <p class="hp-legend">
+        <span class="hp-mono">${this.N}</span> neurons wired by Hebb's rule, holding
+        <span class="hp-mono">${this.P}</span> memories. Nothing is looked up: the corrupted image
+        is simply the network's starting state, and it slides downhill in energy until it can go no
+        lower. Where it stops <em>is</em> the recollection. Starting from noise can also strand it in
+        a spurious blend of memories, or on a mirror image &mdash; every memory
+        <span class="hp-mono">&xi;</span> has a twin attractor <span class="hp-mono">&minus;&xi;</span>.
+      </p>
+    `;
+
+      this.canvas = this.querySelector('.hp-canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.image = this.ctx.createImageData(px, px);
+
+      this.traceCanvas = this.querySelector('.hp-trace');
+      this.traceCtx = this.traceCanvas.getContext('2d');
+
+      this.noiseEl = this.querySelector('.hp-noise');
+      this.noiseValEl = this.querySelector('.hp-noise-val');
+      this.speedEl = this.querySelector('.hp-speed');
+      this.runBtn = this.querySelector('[data-act="run"]');
+      this.stepBtn = this.querySelector('[data-act="step"]');
+      this.stepsEl = this.querySelector('.hp-steps');
+      this.energyEl = this.querySelector('.hp-e');
+      this.statusEl = this.querySelector('.hp-status');
+
+      this.drawThumbs();
+      this.wire();
+    }
+
+    drawThumbs() {
+      for (const btn of this.querySelectorAll('.hp-thumb')) {
+        const idx = +btn.dataset.mem;
+        const ctx = btn.querySelector('canvas').getContext('2d');
+        const img = ctx.createImageData(this.size, this.size);
+        paint(img, this.X[idx]);
+        ctx.putImageData(img, 0, 0);
+      }
+    }
+
+    wire() {
+      this.stepBtn.addEventListener('click', () => {
+        this.pause();
+        this.step();
+        this.draw();
+      });
+      this.runBtn.addEventListener('click', () => this.toggleRun());
+      this.querySelector('[data-act="reset"]').addEventListener('click', () => this.setState(this.cue, false));
+      this.querySelector('[data-act="corrupt"]').addEventListener('click', () => this.corrupt());
+      this.querySelector('[data-act="occlude"]').addEventListener('click', () => this.occlude());
+      this.querySelector('[data-act="random"]').addEventListener('click', () => this.randomize());
+
+      for (const btn of this.querySelectorAll('.hp-thumb')) {
+        btn.addEventListener('click', () => this.loadMemory(+btn.dataset.mem));
+      }
+
+      this.noiseEl.addEventListener('input', () => {
+        this.noiseValEl.textContent = `${this.noiseEl.value}%`;
+      });
+
+      this.canvas.addEventListener('pointerdown', (e) => {
+        this.painting = true;
+        this.canvas.setPointerCapture(e.pointerId);
+        this.paintAt(e);
+      });
+      this.canvas.addEventListener('pointermove', (e) => this.painting && this.paintAt(e));
+      this.canvas.addEventListener('pointerup', () => (this.painting = false));
+      this.canvas.addEventListener('pointercancel', () => (this.painting = false));
+    }
+
+    paintAt(event) {
+      event.preventDefault();
+      const rect = this.canvas.getBoundingClientRect();
+      const cx = Math.floor(((event.clientX - rect.left) / rect.width) * this.size);
+      const cy = Math.floor(((event.clientY - rect.top) / rect.height) * this.size);
+      const value = event.shiftKey ? -1 : 1;
+
+      for (let dy = -BRUSH; dy <= BRUSH; dy++) {
+        for (let dx = -BRUSH; dx <= BRUSH; dx++) {
+          const x = cx + dx;
+          const y = cy + dy;
+          if (x < 0 || y < 0 || x >= this.size || y >= this.size) continue;
+          const i = y * this.size + x;
+          this.u[i] = value;
+          this.V[i] = Math.tanh(value / this.u0);
+        }
+      }
+
+      this.settled = false;
+      this.draw();
+    }
+
+    /* ----------------------------------------------------------------- paint */
+
+    draw() {
+      paint(this.image, this.V);
+      this.ctx.putImageData(this.image, 0, 0);
+
+      const e = this.energy();
+      this.drawTrace();
+
+      const ov = this.overlaps();
+      let best = 0;
+      for (let i = 1; i < this.P; i++) if (Math.abs(ov[i]) > Math.abs(ov[best])) best = i;
+
+      for (const row of this.querySelectorAll('.hp-bar-row')) {
+        const i = +row.dataset.ov;
+        const v = ov[i];
+        row.querySelector('.hp-bar-fill').style.width = `${Math.abs(v) * 100}%`;
+        row.querySelector('.hp-bar-val').textContent = v.toFixed(2);
+        row.classList.toggle('is-best', i === best && Math.abs(v) > 0.5);
+        row.classList.toggle('is-negative', v < 0);
+      }
+
+      for (const btn of this.querySelectorAll('.hp-thumb')) {
+        btn.classList.toggle('is-cue', +btn.dataset.mem === this.cueIndex);
+      }
+
+      this.stepsEl.textContent = this.steps;
+      this.energyEl.textContent = e.toFixed(4);
+
+      const near = Math.abs(ov[best]);
+      if (this.settled) {
+        const exact = near > 0.999;
+        this.statusEl.textContent = exact
+          ? `settled on ${ov[best] < 0 ? 'inverted ' : ''}${this.names[best]}`
+          : 'settled on a spurious state';
+        this.statusEl.className = `hp-chip hp-status ${exact ? 'is-good' : 'is-bad'}`;
+      } else {
+        this.statusEl.textContent = 'relaxing…';
+        this.statusEl.className = 'hp-chip hp-status';
+      }
+
+      this.syncControls();
+    }
+
+    drawTrace() {
+      const canvas = this.traceCanvas;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.clientWidth || TRACE_LEN;
+      const h = 46;
+
+      // Give the canvas a backing store that matches its box, so the line is crisp.
+      if (canvas.width !== Math.round(w * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+
+      const ctx = this.traceCtx;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      if (this.trace.length < 2) return;
+
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const v of this.trace) {
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+      const span = hi - lo || 1;
+      const dx = w / (this.trace.length - 1);
+
+      ctx.beginPath();
+      this.trace.forEach((v, i) => {
+        const x = i * dx;
+        const y = 3 + (1 - (v - lo) / span) * (h - 6);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.strokeStyle = getComputedStyle(this).getPropertyValue('--hp-accent').trim() || '#2f6fb3';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+
+    syncControls() {
+      this.runBtn.textContent = this.raf ? 'Pause' : 'Run';
+      this.runBtn.disabled = this.settled && !this.raf;
+      this.stepBtn.disabled = this.settled;
+    }
+  }
+
+  /* ---------------------------------------------------------------- helpers */
+
+  /** V in [-1, 1] to greyscale: +1 (ink) is black, -1 (background) is white. */
+  function paint(image, V) {
+    const d = image.data;
+    for (let i = 0; i < V.length; i++) {
+      const g = Math.round((1 - V[i]) * 127.5);
+      d[i * 4] = g;
+      d[i * 4 + 1] = g;
+      d[i * 4 + 2] = g;
+      d[i * 4 + 3] = 255;
+    }
+  }
+
+  function dot(a, b) {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+    return s;
+  }
+
+  /** log(cosh x), written to stay finite for large |x|. */
+  function lncosh(x) {
+    const a = Math.abs(x);
+    return a + Math.log1p(Math.exp(-2 * a)) - Math.LN2;
+  }
+
+  /** Gauss-Jordan inverse of a small dense matrix. */
+  function invert(A) {
+    const n = A.length;
+    const M = A.map((row, i) => [...row, ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))]);
+
+    for (let col = 0; col < n; col++) {
+      let pivot = col;
+      for (let r = col + 1; r < n; r++) if (Math.abs(M[r][col]) > Math.abs(M[pivot][col])) pivot = r;
+      [M[col], M[pivot]] = [M[pivot], M[col]];
+
+      const p = M[col][col];
+      if (!p) throw new Error('<blog-hopfield> patterns are linearly dependent');
+      for (let j = 0; j < 2 * n; j++) M[col][j] /= p;
+
+      for (let r = 0; r < n; r++) {
+        if (r === col) continue;
+        const f = M[r][col];
+        if (!f) continue;
+        for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[col][j];
+      }
+    }
+
+    return M.map((row) => row.slice(n));
+  }
+
+  customElements.define('blog-hopfield', BlogHopfield);
+
+  /**
+   * <blog-neuroglancer> Component
+   * A click-to-load Neuroglancer embed.
+   *
+   * Neuroglancer streams EM volumes and multi-megabyte meshes over WebGL, so it
+   * is far too heavy to auto-load in an article. This renders a lightweight poster
+   * and only injects the iframe when the reader asks for it (the same pattern as a
+   * lazy YouTube embed). Until then the page pays nothing.
+   *
+   * The viewer state is given as an inline JSON blob — the same object a
+   * Neuroglancer "#!" link encodes — so the scene (layers, segments, camera) stays
+   * readable and editable rather than a base64 wall:
+   *
+   * <blog-neuroglancer viewer="https://ngl.cave-explorer.org/" height="480"
+   *     caption="Four ExR1 ring neurons in the ellipsoid body.">
+   *   <script type="application/json">
+   *   { "layers": [ ... ], "layout": { "type": "3d" }, ... }
+   *   </script>
+   * </blog-neuroglancer>
+   *
+   * Add the `autoload` attribute to skip the click: the viewer then mounts by
+   * itself the first time the figure scrolls near the viewport, so a reader who
+   * never reaches it still never triggers the download.
+   */
+
+  const DEFAULT_VIEWER = 'https://ngl.cave-explorer.org/';
+
+  class BlogNeuroglancer extends HTMLElement {
+    connectedCallback() {
+      if (this._built) return;
+      this._built = true;
+
+      this.viewer = this.getAttribute('viewer') || DEFAULT_VIEWER;
+      this.height = this.getAttribute('height') || '480';
+      this.caption = this.getAttribute('caption') || '';
+
+      const state = this.readState();
+      if (!state) {
+        this.innerHTML = `<div class="ng"><p class="ng-error">No Neuroglancer state provided.</p></div>`;
+        return;
+      }
+
+      this.url = this.viewer.replace(/\/+$/, '') + '/#!' + encodeURIComponent(JSON.stringify(state));
+      this.segments = countSegments(state);
+      this.renderPoster();
+
+      if (this.hasAttribute('autoload')) this.armAutoload();
+    }
+
+    /**
+     * Mount the viewer once the figure nears the viewport, so `autoload` costs
+     * nothing until a reader actually scrolls to it. A manual Collapse cancels
+     * this — the observer is one-shot — so the poster then stays put.
+     */
+    armAutoload() {
+      if (!('IntersectionObserver' in window)) {
+        this.embed();
+        return;
+      }
+      this._observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) this.embed();
+        },
+        { rootMargin: '250px' }
+      );
+      this._observer.observe(this);
+    }
+
+    /** The scene lives in an inline <script type="application/json"> child. */
+    readState() {
+      const script = this.querySelector('script[type="application/json"]');
+      if (!script) return null;
+      try {
+        return JSON.parse(script.textContent);
+      } catch (err) {
+        console.error('<blog-neuroglancer> could not parse state JSON:', err);
+        return null;
+      }
+    }
+
+    disconnectedCallback() {
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+    }
+
+    renderPoster() {
+      this.innerHTML = `
+      <div class="ng" style="--ng-height:${Number(this.height)}px">
+        <div class="ng-poster">
+          <div class="ng-poster-body">
+            <svg class="ng-glyph" viewBox="0 0 48 48" aria-hidden="true">
+              <circle cx="24" cy="24" r="15" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="24" cy="9"  r="3.2" fill="currentColor"/>
+              <circle cx="37" cy="16.5" r="3.2" fill="currentColor"/>
+              <circle cx="37" cy="31.5" r="3.2" fill="currentColor"/>
+              <circle cx="24" cy="39" r="3.2" fill="currentColor"/>
+              <circle cx="11" cy="31.5" r="3.2" fill="currentColor"/>
+              <circle cx="11" cy="16.5" r="3.2" fill="currentColor"/>
+            </svg>
+            <p class="ng-title">Interactive 3D connectome</p>
+            <p class="ng-sub">${this.segments} neuron${this.segments === 1 ? '' : 's'} reconstructed from FlyWire electron-microscopy data. Drag to rotate, scroll to zoom.</p>
+            <button type="button" class="ng-load">Load 3D viewer</button>
+            <p class="ng-note">Loads Neuroglancer and streams EM meshes from FlyWire &mdash;
+              <a class="ng-newtab" href="${escapeAttr(this.url)}" target="_blank" rel="noopener">open in a new tab</a> instead.</p>
+          </div>
+        </div>
+      </div>
+    `;
+      this.querySelector('.ng-load').addEventListener('click', () => this.embed());
+    }
+
+    embed() {
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+
+      const frame = document.createElement('iframe');
+      frame.className = 'ng-frame';
+      frame.src = this.url;
+      frame.loading = 'lazy';
+      frame.allow = 'fullscreen';
+      frame.setAttribute('title', this.caption || 'Neuroglancer 3D viewer');
+
+      const wrap = this.querySelector('.ng');
+      wrap.innerHTML = '';
+      wrap.appendChild(frame);
+
+      // Offer an escape hatch: the viewer captures scroll/drag, so give the reader
+      // a way to open it full-size and to collapse it back to the poster.
+      const bar = document.createElement('div');
+      bar.className = 'ng-bar';
+      bar.innerHTML = `
+      <a href="${escapeAttr(this.url)}" target="_blank" rel="noopener">Open full viewer &nearr;</a>
+      <button type="button" class="ng-close">Collapse</button>
+    `;
+      wrap.appendChild(bar);
+      bar.querySelector('.ng-close').addEventListener('click', () => this.renderPoster());
+    }
+  }
+
+  function countSegments(state) {
+    let n = 0;
+    for (const layer of state.layers || []) {
+      if (layer.type === 'segmentation' && Array.isArray(layer.segments)) {
+        // The whole-brain neuropil mesh ("1") is scenery, not a neuron.
+        n += layer.segments.filter((s) => s !== '1' && !String(s).startsWith('!')).length;
+      }
+    }
+    return n;
+  }
+
+  const escapeAttr = (s) =>
+    String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  customElements.define('blog-neuroglancer', BlogNeuroglancer);
+
+  /**
+   * <blog-mp-net> Component
+   * McCulloch-Pitts logic-gate networks, drawn in their classic notation:
+   * each neuron is a triangle labelled with its threshold, excitatory synapses
+   * are filled dots, and an inhibitory synapse is a hollow ring that vetoes its
+   * target (in the true MP model any active inhibitory input nullifies the cell).
+   *
+   * The inputs are clickable. Toggle them and the network computes forward, one
+   * layer at a time, lighting up whichever neurons fire — so you can watch a
+   * single neuron fail at XOR and a three-neuron network succeed.
+   *
+   * Usage:
+   *   <blog-mp-net type="and"></blog-mp-net>
+   *   <blog-mp-net type="xor"></blog-mp-net>
+   *   <blog-mp-net type="xor" static></blog-mp-net>   (no interaction)
+   *
+   * A neuron fires when the sum of its active excitatory inputs (unit weights)
+   * strictly exceeds its threshold, unless an inhibitory input vetoes it.
+   */
+
+  const HW = 30; // triangle half-width
+  const HH = 26; // triangle half-height
+
+  const PRESETS = {
+    and: {
+      name: 'AND',
+      viewBox: [0, 0, 360, 200],
+      inputs: ['1', '2'],
+      output: '3',
+      neurons: [
+        { id: '1', kind: 'input', x: 55, y: 55, label: '1' },
+        { id: '2', kind: 'input', x: 55, y: 145, label: '2' },
+        { id: '3', kind: 'output', x: 250, y: 100, label: '3', theta: 1.5 }
+      ],
+      edges: [
+        { from: '1', to: '3', sign: 1 },
+        { from: '2', to: '3', sign: 1 }
+      ]
+    },
+
+    xor: {
+      name: 'XOR',
+      viewBox: [0, 0, 460, 250],
+      inputs: ['1', '2'],
+      output: 'out',
+      neurons: [
+        { id: '1', kind: 'input', x: 55, y: 70, label: '1' },
+        { id: '2', kind: 'input', x: 55, y: 180, label: '2' },
+        { id: 'or', kind: 'hidden', x: 215, y: 55, label: 'OR', theta: 0.5 },
+        { id: 'and', kind: 'hidden', x: 215, y: 195, label: 'AND', theta: 1.5 },
+        { id: 'out', kind: 'output', x: 380, y: 125, label: 'XOR', theta: 0.5 }
+      ],
+      edges: [
+        { from: '1', to: 'or', sign: 1 },
+        { from: '2', to: 'or', sign: 1 },
+        { from: '1', to: 'and', sign: 1 },
+        { from: '2', to: 'and', sign: 1 },
+        { from: 'or', to: 'out', sign: 1 },
+        { from: 'and', to: 'out', sign: -1 }
+      ]
+    }
+  };
+
+  class BlogMpNet extends HTMLElement {
+    connectedCallback() {
+      if (this._built) return;
+      this._built = true;
+
+      this.preset = PRESETS[(this.getAttribute('type') || 'and').toLowerCase()];
+      if (!this.preset) {
+        this.innerHTML = `<div class="mp"><p class="mp-error">Unknown network type.</p></div>`;
+        return;
+      }
+
+      this.interactive = !this.hasAttribute('static');
+      this.byId = new Map(this.preset.neurons.map((n) => [n.id, n]));
+      this.incoming = new Map(this.preset.neurons.map((n) => [n.id, []]));
+      for (const e of this.preset.edges) this.incoming.get(e.to).push(e);
+
+      // Inputs start at 1 so the diagram opens on a "firing" example.
+      this.state = new Map(this.preset.neurons.map((n) => [n.id, n.kind === 'input' ? 1 : 0]));
+
+      this.render();
+      this.compute();
+    }
+
+    /* --------------------------------------------------------------- geometry */
+
+    /** A right-pointing triangle: flat input side on the left, output apex right. */
+    triangle(n) {
+      return `${n.x - HW},${n.y - HH} ${n.x - HW},${n.y + HH} ${n.x + HW},${n.y}`;
+    }
+
+    /** Where an edge attaches on the target's left face, spread over its inputs. */
+    attach(target, edge) {
+      const ins = this.incoming.get(target.id);
+      const i = ins.indexOf(edge);
+      const t = ins.length === 1 ? 0.5 : i / (ins.length - 1);
+      return { x: target.x - HW, y: target.y - HH * 0.55 + t * HH * 1.1 };
+    }
+
+    edgePath(edge) {
+      const a = this.byId.get(edge.from);
+      const b = this.byId.get(edge.to);
+      const p0 = { x: a.x + HW, y: a.y };
+      const p1 = this.attach(b, edge);
+      const mx = (p0.x + p1.x) / 2;
+      return `M${p0.x},${p0.y} C${mx},${p0.y} ${mx},${p1.y} ${p1.x},${p1.y}`;
+    }
+
+    /* ----------------------------------------------------------------- render */
+
+    render() {
+      const [, , vw, vh] = this.preset.viewBox;
+
+      let edges = '';
+      let synapses = '';
+      for (const e of this.preset.edges) {
+        const key = `${e.from}-${e.to}`;
+        edges += `<path class="mp-edge" data-edge="${key}" d="${this.edgePath(e)}"/>`;
+
+        const p = this.attach(this.byId.get(e.to), e);
+        synapses +=
+          e.sign > 0
+            ? `<circle class="mp-syn mp-exc" data-edge="${key}" cx="${p.x}" cy="${p.y}" r="5"/>`
+            : `<circle class="mp-syn mp-inh" data-edge="${key}" cx="${p.x}" cy="${p.y}" r="5"/>`;
+      }
+
+      let neurons = '';
+      for (const n of this.preset.neurons) {
+        const cls = `mp-neuron mp-${n.kind}${this.interactive && n.kind === 'input' ? ' mp-clickable' : ''}`;
+        const theta =
+          n.theta != null
+            ? `<text class="mp-theta" x="${n.x - HW * 0.1}" y="${n.y + HH + 15}">&#952;=${n.theta}</text>`
+            : '';
+        const stub =
+          n.kind === 'output' ? `<line class="mp-stub" x1="${n.x + HW}" y1="${n.y}" x2="${n.x + HW + 34}" y2="${n.y}"/>` : '';
+        neurons += `
+        <g class="${cls}" data-id="${n.id}">
+          ${stub}
+          <polygon class="mp-body" points="${this.triangle(n)}"/>
+          <text class="mp-label" x="${n.x - HW * 0.18}" y="${n.y}">${n.label}</text>
+          ${theta}
+        </g>`;
+      }
+
+      const hint = this.interactive
+        ? `<p class="mp-hint">Click neurons <span class="mp-mono">1</span> and <span class="mp-mono">2</span> to toggle their inputs.</p>`
+        : '';
+
+      this.innerHTML = `
+      <div class="mp">
+        <svg viewBox="0 0 ${vw} ${vh}" role="img"
+             aria-label="McCulloch-Pitts network computing ${this.preset.name}">
+          ${edges}
+          ${synapses}
+          ${neurons}
+        </svg>
+        <div class="mp-readout"></div>
+        ${hint}
+      </div>
+    `;
+
+      if (this.interactive) {
+        for (const g of this.querySelectorAll('.mp-clickable')) {
+          g.addEventListener('click', () => {
+            const id = g.dataset.id;
+            this.state.set(id, this.state.get(id) ? 0 : 1);
+            this.compute();
+          });
+        }
+      }
+    }
+
+    /* ---------------------------------------------------------------- compute */
+
+    compute() {
+      // Feed-forward DAG: a couple of passes in listed order settle every layer.
+      for (let pass = 0; pass < this.preset.neurons.length; pass++) {
+        for (const n of this.preset.neurons) {
+          if (n.kind === 'input') continue;
+          let inhibited = false;
+          let exc = 0;
+          for (const e of this.incoming.get(n.id)) {
+            if (!this.state.get(e.from)) continue;
+            if (e.sign < 0) inhibited = true;
+            else exc += 1;
+          }
+          this.state.set(n.id, !inhibited && exc > n.theta ? 1 : 0);
+        }
+      }
+
+      this.paint();
+    }
+
+    paint() {
+      for (const g of this.querySelectorAll('.mp-neuron')) {
+        g.classList.toggle('is-on', !!this.state.get(g.dataset.id));
+      }
+      for (const el of this.querySelectorAll('[data-edge]')) {
+        const from = el.dataset.edge.split('-')[0];
+        el.classList.toggle('is-active', !!this.state.get(from));
+      }
+
+      const { inputs, output, name } = this.preset;
+      const bits = inputs.map((id) => this.state.get(id));
+      const out = this.state.get(output);
+      this.querySelector('.mp-readout').innerHTML =
+        `<span class="mp-mono">${bits[0]}</span> ${name} ` +
+        `<span class="mp-mono">${bits[1]}</span> = ` +
+        `<span class="mp-mono mp-out ${out ? 'is-on' : ''}">${out}</span>`;
+    }
+  }
+
+  customElements.define('blog-mp-net', BlogMpNet);
+
+  /**
+   * <blog-longmult> Component
+   * The long-multiplication algorithm as a runnable state machine.
+   *
+   * The same flow-chart the essay describes, but you can step through it: the
+   * current state lights up in the diagram while a worked example (17 x 24 by
+   * default, editable) updates in lock-step beside it — digit pointers, the
+   * single-digit product on the scratch pad, the partial-product rows, and the
+   * final sum. Watching the state travel the graph is the point: it makes the
+   * abstract notions of state and transition rule concrete.
+   *
+   * Usage:
+   *   <blog-longmult></blog-longmult>
+   *   <blog-longmult top="123" bottom="45"></blog-longmult>
+   */
+
+  // Each state: short label for the node, a fuller note for the status line, a
+  // position, and an `run(ctx)` that mutates the worked example and returns the
+  // id of the next state. Decisions branch inside run().
+  const STATES = [
+    {
+      id: 'start',
+      kind: 'action',
+      label: 'Write the factors',
+      note: (c) => `Write ${c.topStr} over ${c.bottomStr}, right-aligned.`,
+      x: 300, y: 46,
+      run: (c) => {
+        c.rows = [];
+        c.bottomUsed = 0;
+        c.bi = c.ti = -1;
+        c.row = 0;
+        c.product = null;
+        return 'choose_bottom';
+      }
+    },
+    {
+      id: 'choose_bottom',
+      kind: 'action',
+      label: 'Pick next bottom digit',
+      note: (c) => `Move to the next bottom digit: ${c.bottom[c.bottomUsed]}.`,
+      x: 300, y: 122,
+      run: (c) => {
+        c.bi = c.bottomUsed;
+        c.bottomUsed += 1;
+        c.topUsed = 0;
+        c.row = 0;
+        c.ti = -1;
+        return 'choose_top';
+      }
+    },
+    {
+      id: 'choose_top',
+      kind: 'action',
+      label: 'Pick next top digit',
+      note: (c) => `Pick the next top digit: ${c.top[c.topUsed]}.`,
+      x: 300, y: 198,
+      run: (c) => {
+        c.ti = c.topUsed;
+        c.topUsed += 1;
+        return 'multiply';
+      }
+    },
+    {
+      id: 'multiply',
+      kind: 'action',
+      label: 'Multiply the two digits',
+      note: (c) => `Look up ${c.bottom[c.bi]} × ${c.top[c.ti]} = ${c.bottom[c.bi] * c.top[c.ti]}.`,
+      x: 300, y: 274,
+      run: (c) => {
+        c.product = c.bottom[c.bi] * c.top[c.ti];
+        return 'place_product';
+      }
+    },
+    {
+      id: 'place_product',
+      kind: 'action',
+      label: 'Add it to the row',
+      note: (c) => {
+        const shift = c.bi + c.ti;
+        const placed = c.product * 10 ** shift;
+        return shift === 0
+          ? `Add ${c.product} to the row (row ${c.row} → ${c.row + placed}).`
+          : `Shift ${c.product} left ${shift} place${shift > 1 ? 's' : ''} to ${placed}, then add (row ${c.row} → ${c.row + placed}).`;
+      },
+      x: 300, y: 350,
+      run: (c) => {
+        c.row += c.product * 10 ** (c.bi + c.ti);
+        return 'next_top';
+      }
+    },
+    {
+      id: 'next_top',
+      kind: 'decision',
+      label: 'More top digits?',
+      note: (c) =>
+        c.topUsed < c.top.length
+          ? `More top digits to pair with ${c.bottom[c.bi]}? Yes — take ${c.top[c.topUsed]} next.`
+          : `More top digits? No — this row is finished: ${c.row}.`,
+      x: 300, y: 430,
+      run: (c) => {
+        if (c.topUsed < c.top.length) return 'choose_top';
+        c.rows.push(c.row); // row for this bottom digit is finished
+        return 'next_bottom';
+      }
+    },
+    {
+      id: 'next_bottom',
+      kind: 'decision',
+      label: 'More bottom digits?',
+      note: (c) =>
+        c.bottomUsed < c.bottom.length
+          ? `More bottom digits? Yes — the next one is ${c.bottom[c.bottomUsed]}.`
+          : `More bottom digits? No — add the rows together.`,
+      x: 300, y: 510,
+      run: (c) => (c.bottomUsed < c.bottom.length ? 'shift_row' : 'sum_rows')
+    },
+    {
+      id: 'shift_row',
+      kind: 'action',
+      label: 'Start a new row',
+      note: (c) => `Start a fresh row for ${c.bottom[c.bottomUsed]}, shifted one place left.`,
+      x: 92, y: 510,
+      run: () => 'choose_bottom'
+    },
+    {
+      id: 'sum_rows',
+      kind: 'action',
+      label: 'Sum the rows',
+      note: (c) =>
+        c.rows.length > 1
+          ? `Add the rows: ${c.rows.join(' + ')} = ${c.rows.reduce((a, b) => a + b, 0)}.`
+          : `Just one row, so that is the answer: ${c.rows[0]}.`,
+      x: 300, y: 586,
+      run: (c) => {
+        c.answer = c.rows.reduce((a, b) => a + b, 0);
+        return 'end';
+      }
+    }
+  ];
+
+  // Hand-routed edges: straight spine, two loop-backs, Yes/No on the decisions.
+  const EDGES = [
+    { from: 'start', to: 'choose_bottom', d: 'M300,67 L300,101' },
+    { from: 'choose_bottom', to: 'choose_top', d: 'M300,143 L300,177' },
+    { from: 'choose_top', to: 'multiply', d: 'M300,219 L300,253' },
+    { from: 'multiply', to: 'place_product', d: 'M300,295 L300,329' },
+    { from: 'place_product', to: 'next_top', d: 'M300,371 L300,409' },
+    { from: 'next_top', to: 'choose_top', label: 'yes', lx: 486, ly: 314,
+      d: 'M400,430 L472,430 L472,198 L400,198' },
+    { from: 'next_top', to: 'next_bottom', label: 'no', lx: 314, ly: 470,
+      d: 'M300,451 L300,489' },
+    { from: 'next_bottom', to: 'shift_row', label: 'yes', lx: 186, ly: 499,
+      d: 'M200,510 L169,510' },
+    { from: 'shift_row', to: 'choose_bottom', d: 'M92,489 L92,122 L200,122' },
+    { from: 'next_bottom', to: 'sum_rows', label: 'no', lx: 314, ly: 550,
+      d: 'M300,531 L300,565' },
+    { from: 'sum_rows', to: 'end', d: 'M300,607 L300,628' }
+  ];
+
+  const NODE_W = 200;
+  const NODE_H = 42;
+  const SHIFT_W = 150;
+
+  class BlogLongmult extends HTMLElement {
+    connectedCallback() {
+      if (this._built) return;
+      this._built = true;
+
+      this.byId = new Map(STATES.map((s) => [s.id, s]));
+      this.speed = 1.4;
+      this.render();
+      this.load(this.getAttribute('top') || '17', this.getAttribute('bottom') || '24');
+    }
+
+    disconnectedCallback() {
+      this.pause();
+    }
+
+    /* ------------------------------------------------------------------ model */
+
+    load(topStr, bottomStr) {
+      this.pause();
+      topStr = String(topStr).replace(/\D/g, '') || '0';
+      bottomStr = String(bottomStr).replace(/\D/g, '') || '0';
+
+      this.ctx = {
+        topStr,
+        bottomStr,
+        // index 0 = rightmost (units) digit
+        top: [...topStr].reverse().map(Number),
+        bottom: [...bottomStr].reverse().map(Number),
+        rows: [],
+        bi: -1,
+        ti: -1,
+        row: 0,
+        bottomUsed: 0,
+        topUsed: 0,
+        product: null,
+        answer: null
+      };
+      this.current = 'start';
+      this.done = false;
+      this.paint();
+    }
+
+    step() {
+      if (this.done) return false;
+      const next = this.byId.get(this.current).run(this.ctx);
+      if (next === 'end') {
+        this.done = true;
+        this.current = 'sum_rows';
+      } else {
+        this.current = next;
+      }
+      this.paint();
+      if (this.done) this.pause();
+      return !this.done;
+    }
+
+    run() {
+      if (this.timer || this.done) return;
+      this.timer = setInterval(() => this.step(), 1000 / this.speed);
+      this.syncControls();
+    }
+
+    pause() {
+      if (!this.timer) return;
+      clearInterval(this.timer);
+      this.timer = null;
+      this.syncControls();
+    }
+
+    toggleRun() {
+      if (this.timer) this.pause();
+      else this.run();
+    }
+
+    /* ----------------------------------------------------------------- render */
+
+    render() {
+      this.innerHTML = `
+      <div class="lm">
+        <div class="lm-main">
+          <div class="lm-diagram">${this.diagramSvg()}</div>
+
+          <div class="lm-side">
+            <div class="lm-work"></div>
+            <p class="lm-note" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="lm-bar">
+          <div class="lm-factors">
+            <input class="lm-in lm-top" type="text" inputmode="numeric" aria-label="top factor" value="17">
+            <span class="lm-times">&times;</span>
+            <input class="lm-in lm-bottom" type="text" inputmode="numeric" aria-label="bottom factor" value="24">
+          </div>
+          <div class="lm-controls">
+            <button type="button" class="lm-btn" data-act="step">Step</button>
+            <button type="button" class="lm-btn lm-btn-primary" data-act="run">Run</button>
+            <button type="button" class="lm-btn" data-act="reset">Reset</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+      this.diagramEl = this.querySelector('.lm-diagram');
+      this.workEl = this.querySelector('.lm-work');
+      this.noteEl = this.querySelector('.lm-note');
+      this.topIn = this.querySelector('.lm-top');
+      this.bottomIn = this.querySelector('.lm-bottom');
+      this.runBtn = this.querySelector('[data-act="run"]');
+      this.stepBtn = this.querySelector('[data-act="step"]');
+
+      this.stepBtn.addEventListener('click', () => {
+        this.pause();
+        this.step();
+      });
+      this.runBtn.addEventListener('click', () => this.toggleRun());
+      this.querySelector('[data-act="reset"]').addEventListener('click', () =>
+        this.load(this.topIn.value, this.bottomIn.value)
+      );
+
+      const onEdit = () => {
+        const t = this.topIn.value.replace(/\D/g, '');
+        const b = this.bottomIn.value.replace(/\D/g, '');
+        if (t && b && t.length <= 4 && b.length <= 4) this.load(t, b);
+      };
+      this.topIn.addEventListener('input', onEdit);
+      this.bottomIn.addEventListener('input', onEdit);
+    }
+
+    diagramSvg() {
+      let nodes = '';
+      for (const s of STATES) {
+        const w = s.id === 'shift_row' ? SHIFT_W : NODE_W;
+        const rx = s.kind === 'decision' ? 21 : 6;
+        nodes += `
+        <g class="lm-node lm-${s.kind}" data-id="${s.id}">
+          <rect x="${s.x - w / 2}" y="${s.y - NODE_H / 2}" width="${w}" height="${NODE_H}" rx="${rx}"/>
+          <text x="${s.x}" y="${s.y}">${escapeHtml(s.label)}</text>
+        </g>`;
+      }
+
+      // terminal dot below sum_rows
+      nodes += `<circle class="lm-terminal" cx="300" cy="632" r="7"/>`;
+
+      let edges = '';
+      for (const e of EDGES) {
+        edges += `<path class="lm-edge" data-edge="${e.from}--${e.to}" d="${e.d}" marker-end="url(#lm-arrow)"/>`;
+        if (e.label) {
+          edges += `<text class="lm-edge-label" x="${e.lx}" y="${e.ly}">${e.label}</text>`;
+        }
+      }
+
+      return `
+      <svg viewBox="0 0 520 660" role="img" aria-label="State diagram of the long-multiplication algorithm">
+        <defs>
+          <marker id="lm-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0.5 L8,4 L0,7.5 z"/>
+          </marker>
+        </defs>
+        ${edges}
+        ${nodes}
+      </svg>
+    `;
+    }
+
+    /* ----------------------------------------------------------------- repaint */
+
+    paint() {
+      // highlight the current node + its incoming edge
+      for (const g of this.querySelectorAll('.lm-node')) {
+        g.classList.toggle('is-current', g.dataset.id === this.current && !this.done);
+        g.classList.toggle('is-done', this.done && g.dataset.id === 'sum_rows');
+      }
+
+      this.renderWork();
+      const s = this.byId.get(this.current);
+      this.noteEl.textContent = this.done
+        ? `Done — ${this.ctx.topStr} × ${this.ctx.bottomStr} = ${this.ctx.answer}.`
+        : typeof s.note === 'function'
+          ? s.note(this.ctx)
+          : s.note;
+
+      this.syncControls();
+    }
+
+    renderWork() {
+      const c = this.ctx;
+      const width = Math.max(c.topStr.length + c.bottomStr.length, ...c.rows.map((r) => String(r).length), 1);
+
+      const factorRow = (str, hi, symbol) => {
+        const pad = width - str.length - (symbol ? 1 : 0);
+        let cells = symbol ? `<span class="lm-cell lm-op">${symbol}</span>` : '';
+        cells += '<span class="lm-cell"></span>'.repeat(Math.max(0, pad));
+        [...str].forEach((d, i) => {
+          // hi is the position index from the right that is active
+          const posFromRight = str.length - 1 - i;
+          const active = hi != null && posFromRight === hi;
+          cells += `<span class="lm-cell${active ? ' is-hi' : ''}">${d}</span>`;
+        });
+        return `<div class="lm-drow">${cells}</div>`;
+      };
+
+      const numRow = (n, cls = '') => {
+        const str = String(n);
+        const pad = width - str.length;
+        let cells = '<span class="lm-cell"></span>'.repeat(Math.max(0, pad));
+        cells += [...str].map((d) => `<span class="lm-cell">${d}</span>`).join('');
+        return `<div class="lm-drow ${cls}">${cells}</div>`;
+      };
+
+      // scratch line: the single-digit product on the pad (the note explains the shift)
+      let scratch = '';
+      if (c.product != null && !this.done && this.current === 'place_product') {
+        scratch = `<div class="lm-scratch"><span class="lm-mono">${c.bottom[c.bi]} &times; ${c.top[c.ti]} = ${c.product}</span></div>`;
+      }
+
+      const committed = c.rows.map((r) => numRow(r, 'lm-committed')).join('');
+      // in-progress row (only while building the current bottom digit's row)
+      const building =
+        !this.done && c.bi >= 0 && this.current !== 'choose_bottom' && this.current !== 'shift_row' && c.rows.length < c.bottomUsed
+          ? numRow(c.row, 'lm-building')
+          : '';
+
+      const sum =
+        this.done
+          ? `<div class="lm-rule"></div>${numRow(c.answer, 'lm-answer')}`
+          : c.rows.length > 1 && this.current === 'sum_rows'
+            ? `<div class="lm-rule"></div>`
+            : '';
+
+      this.workEl.innerHTML = `
+      ${factorRow(c.topStr, this.current === 'choose_top' || scratch ? c.ti : null)}
+      ${factorRow(c.bottomStr, c.bi >= 0 && !this.done ? c.bi : null, '×')}
+      <div class="lm-rule"></div>
+      ${committed}
+      ${building}
+      ${sum}
+      ${scratch}
+    `;
+    }
+
+    syncControls() {
+      if (!this.runBtn) return;
+      this.runBtn.textContent = this.timer ? 'Pause' : 'Run';
+      this.runBtn.disabled = this.done;
+      this.stepBtn.disabled = this.done;
+    }
+  }
+
+  const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+  customElements.define('blog-longmult', BlogLongmult);
+
   function styleInject(css, ref) {
     if ( ref === void 0 ) ref = {};
     var insertAt = ref.insertAt;
@@ -22243,28 +24234,43 @@ var BlogComponents = (function (exports) {
     }
   }
 
-  var css_248z$7 = ":root{--blog-text:rgba(0,0,0,.8);--blog-text-muted:rgba(0,0,0,.5);--blog-text-semi:rgba(0,0,0,.7);--blog-bg:#fff;--blog-max-width:700px;--blog-font-body:-apple-system,Helvetica,arial,sans-serif;--blog-font-code:\"Google Sans Code\",ui-monospace,SFMono-Regular,Menlo,Consolas,\"Liberation Mono\",monospace;--blog-rule:rgba(0,0,0,.2);--blog-rule-light:rgba(0,0,0,.1)}html{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;color:var(--blog-text);font-family:var(--blog-font-body);line-height:1.5em}body{background:var(--blog-bg);margin:0}body .content{margin-bottom:120px}a{color:var(--blog-text);text-decoration:none}a:hover{text-decoration:underline}h1,h2,h3,h4,h5,h6{font-family:var(--blog-font-body)}h1{line-height:1.2em;margin-bottom:0}.clear{clear:both}.hidden{display:none}.wrap{margin:0 auto;max-width:var(--blog-max-width)}.mono{font-family:monospace}.nav{margin-bottom:15px;margin-top:15px}.nav a{border-bottom:none;color:rgba(0,0,0,.6);font-size:12px;text-decoration:none}.nav a:hover{font-weight:700}.nav ul{list-style-type:none;padding:0}.nav ul li{display:inline;margin-right:10px}.front-matter{padding:10px 0}.front-matter h4{font-family:var(--blog-font-body)}.front-matter .bylines .byline{float:left;margin-right:20px}.front-matter .bylines .byline h3,.front-matter .bylines .byline p{font-family:var(--blog-font-body);margin:0}.front-matter .bylines .byline h3{color:var(--blog-text-muted);font-size:9px;text-transform:uppercase}.front-matter .bylines .byline p{font-size:10px;line-height:1.6em}.article{color:var(--blog-text);font-size:15px;line-height:1.6em;margin-bottom:10px;margin-top:20px}.article blockquote{border-left:.25em solid #ddd;color:#777;margin:0;padding:0 1em}.article h2{border-bottom:1px solid var(--blog-rule);font-size:26px;padding-bottom:1rem;padding-top:1em}.article ul{padding:0 15px}.article hr{border-bottom:none;border-top:1px solid rgba(0,0,0,.7);margin:33px auto;width:70px}.article .callout{background:#f8f8f8;border-left:4px solid #555;border-radius:4px;font-size:14px;line-height:1.5em;margin:1.5em 0;padding:1em 1.2em;position:relative}#blog{margin-bottom:100px;margin-top:80px}#blog #intro{font-size:14px;font-style:italic;line-height:1.4em;margin-bottom:40px}#blog .quote{margin-bottom:30px}#blog .quote p{margin-bottom:5px}#blog .post-date{color:var(--blog-text-semi);font-size:12px;font-weight:700;margin-bottom:4px;margin-top:4px;text-transform:uppercase}#blog .post-title{display:inline-block;font-weight:700;margin-bottom:0}#blog .post-title a{font-size:18px;text-decoration:none!important}#blog .post-title a:hover{text-decoration:underline!important}#blog .post-subtitle{font-size:14px;line-height:1.5em;margin-bottom:25px;margin-top:0}#blog .year{color:var(--blog-text-muted);font-size:18px;margin-bottom:-24px;position:relative;right:100px;width:100px}hr{border-top:#ccc}#about-page .front-matter{border-bottom:0 solid var(--blog-rule-light);border-top:0 solid var(--blog-rule-light);padding:5px 0}#about-page .wrap.article a{text-decoration:underline}#about-page .wrap.article a:hover{text-decoration:none}#about-page .front-matter h4{margin-bottom:5px}#about-page .article{margin-top:20px}#post-page .wrap.article a{text-decoration:underline}#post-page .wrap.article a:hover{text-decoration:none}table{border-collapse:collapse;border-radius:6px;display:table;overflow:auto;width:100%}table :is(td,th){border-bottom:1px solid #ddd;padding:.3em}table th{font-weight:700}table tr{background-color:#fff;border-top:1px solid #ccc}table tr:nth-child(2n){background-color:#f8f8f8}img{box-sizing:content-box;max-width:100%}.katex .texttt{font-family:var(--blog-font-code)!important}@media screen and (max-width:700px){body{margin:0 7px}}";
+  var css_248z$c = "/**\n * Base Styles for Blog\n * Consolidated from blog.css, markdown.css\n * Preserves original minimal styling\n */\n\n/* CSS Variables for theming */\n:root {\n  --blog-text: rgba(0, 0, 0, 0.8);\n  --blog-text-muted: rgba(0, 0, 0, 0.5);\n  --blog-text-semi: rgba(0, 0, 0, 0.7);\n  --blog-bg: white;\n  --blog-max-width: 700px;\n  --blog-font-body: -apple-system, Helvetica, arial, sans-serif;\n  --blog-font-code: \"Google Sans Code\", ui-monospace, SFMono-Regular, Menlo, Consolas, \"Liberation Mono\", monospace;\n  --blog-rule: rgba(0, 0, 0, 0.2);\n  --blog-rule-light: rgba(0, 0, 0, 0.1);\n}\n\n/* Reset & Base */\nhtml {\n  font-family: var(--blog-font-body);\n  color: var(--blog-text);\n  line-height: 1.5em;\n  -ms-text-size-adjust: 100%;\n  -webkit-text-size-adjust: 100%;\n  text-size-adjust: 100%;\n}\n\nbody {\n  margin: 0;\n  background: var(--blog-bg);\n}\n\nbody .content {\n  margin-bottom: 120px;\n}\n\n/* Links */\na {\n  color: var(--blog-text);\n  text-decoration: none;\n}\n\na:hover {\n  text-decoration: underline;\n}\n\n/* Headings */\nh1, h2, h3, h4, h5, h6 {\n  font-family: var(--blog-font-body);\n}\n\nh1 {\n  line-height: 1.2em;\n  margin-bottom: 0px;\n}\n\n/* Utilities */\n.clear {\n  clear: both;\n}\n\n.hidden {\n  display: none;\n}\n\n.wrap {\n  max-width: var(--blog-max-width);\n  margin: 0 auto;\n}\n\n.mono {\n  font-family: monospace;\n}\n\n/* Navigation */\n.nav {\n  margin-top: 15px;\n  margin-bottom: 15px;\n}\n\n.nav a {\n  color: rgba(0, 0, 0, 0.6);\n  text-decoration: none;\n  border-bottom: none;\n  font-size: 12px;\n}\n\n.nav a:hover {\n  font-weight: bold;\n}\n\n.nav ul {\n  list-style-type: none;\n  padding: 0;\n}\n\n.nav ul li {\n  display: inline;\n  margin-right: 10px;\n}\n\n/* Front Matter / Bylines */\n.front-matter {\n  padding: 10px 0;\n}\n\n.front-matter h4 {\n  font-family: var(--blog-font-body);\n}\n\n.front-matter .bylines .byline {\n  margin-right: 20px;\n  float: left;\n}\n\n.front-matter .bylines .byline h3,\n.front-matter .bylines .byline p {\n  margin: 0;\n  font-family: var(--blog-font-body);\n}\n\n.front-matter .bylines .byline h3 {\n  font-size: 9px;\n  text-transform: uppercase;\n  color: var(--blog-text-muted);\n}\n\n.front-matter .bylines .byline p {\n  font-size: 10px;\n  line-height: 1.6em;\n}\n\n/* Article */\n.article {\n  font-size: 15px;\n  line-height: 1.6em;\n  color: var(--blog-text);\n  margin-top: 20px;\n  margin-bottom: 10px;\n}\n\n.article blockquote {\n  margin: 0;\n  padding: 0 1em;\n  color: #777;\n  border-left: 0.25em solid #ddd;\n}\n\n.article h2 {\n  font-size: 26px;\n  border-bottom: 1px solid var(--blog-rule);\n  padding-bottom: 1rem;\n  padding-top: 1em;\n}\n\n.article ul {\n  padding: 0 15px;\n}\n\n.article hr {\n  border-bottom: none;\n  border-top: 1px solid rgba(0, 0, 0, 0.7);\n  margin: 33px auto;\n  width: 70px;\n}\n\n/* Callout boxes */\n.article .callout {\n  position: relative;\n  border-left: 4px solid #555;\n  background: #f8f8f8;\n  padding: 1em 1.2em;\n  margin: 1.5em 0;\n  border-radius: 4px;\n  font-size: 14px;\n  line-height: 1.5em;\n}\n\n/* Blog listing page */\n#blog {\n  margin-top: 80px;\n  margin-bottom: 100px;\n}\n\n#blog #intro {\n  font-size: 14px;\n  font-style: italic;\n  line-height: 1.4em;\n  margin-bottom: 40px;\n}\n\n#blog .quote {\n  margin-bottom: 30px;\n}\n\n#blog .quote p {\n  margin-bottom: 5px;\n}\n\n#blog .post-date {\n  text-transform: uppercase;\n  color: var(--blog-text-semi);\n  font-size: 12px;\n  font-weight: bold;\n  margin-top: 4px;\n  margin-bottom: 4px;\n}\n\n#blog .post-title {\n  display: inline-block;\n  font-weight: bold;\n  margin-bottom: 0;\n}\n\n#blog .post-title a {\n  font-size: 18px;\n  text-decoration: none !important;\n}\n\n#blog .post-title a:hover {\n  text-decoration: underline !important;\n}\n\n#blog .post-subtitle {\n  font-size: 14px;\n  margin-top: 0;\n  margin-bottom: 25px;\n  line-height: 1.5em;\n}\n\n#blog .year {\n  font-size: 18px;\n  position: relative;\n  right: 100px;\n  color: var(--blog-text-muted);\n  width: 100px;\n  margin-bottom: -24px;\n}\n\nhr {\n  border-top: #ccc;\n}\n\n/* About page specific */\n#about-page .front-matter {\n  padding: 5px 0;\n  border-bottom: 0px solid var(--blog-rule-light);\n  border-top: 0px solid var(--blog-rule-light);\n}\n\n#about-page .wrap.article a {\n  text-decoration: underline;\n}\n\n#about-page .wrap.article a:hover {\n  text-decoration: none;\n}\n\n#about-page .front-matter h4 {\n  margin-bottom: 5px;\n}\n\n#about-page .article {\n  margin-top: 20px;\n}\n\n/* Post page specific */\n#post-page .wrap.article a {\n  text-decoration: underline;\n}\n\n#post-page .wrap.article a:hover {\n  text-decoration: none;\n}\n\n/* Tables */\ntable {\n  display: table;\n  width: 100%;\n  overflow: auto;\n  border-collapse: collapse;\n  border-radius: 6px;\n}\n\ntable :is(td, th) {\n  border-bottom: 1px solid #ddd;\n  padding: 0.3em;\n}\n\ntable th {\n  font-weight: bold;\n}\n\ntable tr {\n  background-color: #fff;\n  border-top: 1px solid #ccc;\n}\n\ntable tr:nth-child(2n) {\n  background-color: #f8f8f8;\n}\n\n/* Images */\nimg {\n  max-width: 100%;\n  box-sizing: content-box;\n}\n\n/* KaTeX code font override */\n.katex .texttt {\n  font-family: var(--blog-font-code) !important;\n}\n\n/* Mobile */\n@media screen and (max-width: 700px) {\n  body {\n    margin: 0 7px;\n  }\n}\n";
+  styleInject(css_248z$c);
+
+  var css_248z$b = "/**\n * blog-figure component styles\n */\n\nblog-figure {\n  display: block;\n  border-top: 1px solid hsla(0, 0%, 0%, 0.2);\n  border-bottom: 1px solid hsla(0, 0%, 0%, 0.2);\n  padding: 20px 0;\n  margin: 1.5em 0;\n}\n\nblog-figure img {\n  display: block;\n  width: 100%;\n  margin: 0 auto;\n}\n\nblog-figure figcaption {\n  padding-top: 15px;\n  display: block;\n  font-size: 13px;\n  line-height: 1.4em;\n  color: var(--blog-text);\n}\n\nblog-figure .blog-figure-number {\n  font-weight: bold;\n}\n\n/* Outset variant for wider figures */\nblog-figure.outset {\n  width: 115%;\n  max-width: none;\n  margin-left: -7.5%;\n  margin-right: -7.5%;\n}\n\n@media screen and (max-width: 700px) {\n  blog-figure.outset {\n    width: 100%;\n    margin-left: 0;\n    margin-right: 0;\n  }\n}\n";
+  styleInject(css_248z$b);
+
+  var css_248z$a = "/**\n * blog-code component styles\n * Syntax highlighting with white background\n */\n\nblog-code {\n  display: block;\n  border-top: 1px solid rgba(0, 0, 0, 0.2);\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n  margin: 1.5em 0;\n}\n\nblog-code pre {\n  margin: 0;\n  padding: 16px;\n  overflow: auto;\n  font-size: 14px;\n  line-height: 1.3;\n  background-color: #ffffff;\n  font-family: var(--blog-font-code);\n}\n\nblog-code code {\n  font-family: var(--blog-font-code);\n  font-size: inherit;\n  background: transparent;\n  padding: 0;\n}\n\n/* Force white background on all elements to prevent any grey */\nblog-code *,\nblog-code code,\nblog-code code * {\n  background: #ffffff !important;\n  background-color: #ffffff !important;\n}\n\n/* PrismJS Theme - colored syntax highlighting */\n.token.comment,\n.token.prolog,\n.token.doctype,\n.token.cdata {\n  color: #999988;\n  font-style: italic;\n}\n\n.token.punctuation {\n  color: #333;\n}\n\n.token.property,\n.token.tag,\n.token.boolean,\n.token.number,\n.token.constant,\n.token.symbol {\n  color: #009999;\n}\n\n.token.selector,\n.token.attr-name,\n.token.string,\n.token.char,\n.token.builtin {\n  color: #bb8844;\n}\n\n.token.operator,\n.token.entity,\n.token.url,\n.language-css .token.string,\n.style .token.string {\n  color: #333;\n}\n\n.token.atrule,\n.token.attr-value,\n.token.keyword {\n  font-weight: bold;\n}\n\n.token.function,\n.token.class-name {\n  color: #990000;\n  font-weight: bold;\n}\n\n.token.regex,\n.token.important,\n.token.variable {\n  color: #008080;\n}\n\n.token.important,\n.token.bold {\n  font-weight: bold;\n}\n\n.token.italic {\n  font-style: italic;\n}\n\n.token.entity {\n  cursor: help;\n}\n\n/* Inline code (not in blog-code) */\n.article code,\n#post-page .wrap.article code {\n  font-family: var(--blog-font-code);\n  font-size: 85%;\n  padding: 0.2em 0.4em;\n  background-color: rgba(0, 0, 0, 0.04);\n  border-radius: 3px;\n}\n\n/* Don't double-style code inside blog-code */\nblog-code code {\n  padding: 0;\n  background: transparent;\n  font-size: inherit;\n}\n";
+  styleInject(css_248z$a);
+
+  var css_248z$9 = "/**\n * Blog Footnotes Styles\n * Styling for footnotes container, items, and references\n */\n\n/* ===== Footnotes Container ===== */\nblog-footnotes {\n  display: block;\n  margin-top: 3em;\n}\n\n.blog-footnotes-section {\n  padding-top: 1.5em;\n}\n\n.blog-footnotes-title {\n  font-size: 1.3em;\n  font-weight: 600;\n  margin: 0 0 1em;\n  color: var(--blog-text);\n}\n\n/* ===== Footnotes List ===== */\n.blog-footnotes-list {\n  font-size: 0.9em;\n  line-height: 1.6;\n  color: var(--blog-text);\n  padding-left: 1.5em;\n  margin: 0;\n}\n\n.blog-footnote-item {\n  margin-bottom: 0.75em;\n}\n\n.blog-footnote-content {\n  /* Inline content */\n}\n\n.blog-footnote-backlink {\n  color: var(--blog-text-muted, #666);\n  text-decoration: none;\n  margin-left: 0.5em;\n}\n\n.blog-footnote-backlink:hover {\n  text-decoration: underline;\n}\n\n/* ===== Inline Reference (superscript number) ===== */\nblog-fn-ref {\n  display: inline;\n}\n\n.blog-fn-ref-marker {\n  line-height: 0;\n}\n\n.blog-fn-ref-marker a {\n  font-size: 0.75em;\n  text-decoration: none;\n  color: var(--blog-text);\n  vertical-align: super;\n}\n\n.blog-fn-ref-marker a:hover {\n  text-decoration: underline;\n}\n\n/* ===== Hide original footnote elements ===== */\nblog-footnote {\n  display: none;\n}\n";
+  styleInject(css_248z$9);
+
+  var css_248z$8 = "/**\n * blog-cite (citation) component styles\n */\n\n/* Inline citation link */\nblog-cite {\n  display: inline;\n}\n\n.blog-cite-link {\n  color: var(--blog-text);\n  text-decoration: none;\n}\n\n.blog-cite-link:hover {\n  text-decoration: underline;\n}\n\n/* Bibliography section */\n.blog-bibliography {\n  margin-top: 3em;\n  padding-top: 1.5em;\n}\n\n.blog-bibliography-title {\n  font-size: 1.3em;\n  font-weight: 600;\n  margin: 0 0 1em;\n  color: var(--blog-text);\n}\n\n.blog-bibliography ol.bibliography {\n  padding-left: 1.5em;\n  font-size: 13px;\n  line-height: 1.5em;\n  color: var(--blog-text-semi);\n  margin: 0;\n}\n\n.blog-bibliography ol.bibliography li {\n  margin-bottom: 0.75em;\n}\n\n.blog-bibliography ol.bibliography li em {\n  font-style: italic;\n}\n";
+  styleInject(css_248z$8);
+
+  var css_248z$7 = "/**\n * blog-math component styles\n * LaTeX equation rendering\n */\n\nblog-math {\n  display: inline;\n}\n\nblog-math.blog-math-block {\n  display: block;\n  margin: 1.5em 0;\n  overflow: visible;\n  text-align: center;\n}\n\nblog-math.blog-math-inline {\n  display: inline;\n}\n\n/* Error display */\n.blog-math-error {\n  color: #c0392b;\n  font-family: var(--blog-font-code);\n  font-size: 0.9em;\n  background: rgba(192, 57, 43, 0.1);\n  padding: 0.2em 0.4em;\n  border-radius: 3px;\n}\n\n/* KaTeX overrides */\n.katex .texttt {\n  font-family: var(--blog-font-code) !important;\n}\n\nblog-math.blog-math-block .katex-display {\n  margin: 0;\n}\n";
   styleInject(css_248z$7);
 
-  var css_248z$6 = "blog-figure{border-bottom:1px solid rgba(0,0,0,.2);border-top:1px solid rgba(0,0,0,.2);display:block;margin:1.5em 0;padding:20px 0}blog-figure img{display:block;margin:0 auto;width:100%}blog-figure figcaption{color:var(--blog-text);display:block;font-size:13px;line-height:1.4em;padding-top:15px}blog-figure .blog-figure-number{font-weight:700}blog-figure.outset{margin-left:-7.5%;margin-right:-7.5%;max-width:none;width:115%}@media screen and (max-width:700px){blog-figure.outset{margin-left:0;margin-right:0;width:100%}}";
+  var css_248z$6 = "/**\n * Blog Appendix Styles\n * Styling for appendix container, items, and references\n */\n\n/* ===== Appendix Container ===== */\nblog-appendix {\n  display: block;\n  margin-top: 3em;\n}\n\n.blog-appendix-section {\n  padding-top: 1.5em;\n}\n\n.blog-appendix-title {\n  font-size: 1.3em;\n  font-weight: 600;\n  margin: 0 0 1em;\n  color: var(--blog-text);\n}\n\n/* ===== Appendix Items ===== */\n.blog-appendix-items {\n  margin-top: 1em;\n}\n\n.blog-appendix-item-rendered {\n  margin-bottom: 2em;\n  padding-top: 1em;\n  border-top: 1px dashed #ddd;\n}\n\n.blog-appendix-item-rendered:first-child {\n  border-top: none;\n  padding-top: 0;\n}\n\n.blog-appendix-item-title {\n  font-size: 1.1em;\n  font-weight: 600;\n  color: var(--blog-text);\n  margin: 0 0 0.75em;\n}\n\n.blog-appendix-item-content {\n  line-height: 1.7;\n  color: var(--blog-text);\n}\n\n.blog-appendix-item-content p {\n  margin: 0.75em 0;\n}\n\n.blog-appendix-item-content blog-math.blog-math-block {\n  display: block;\n  margin: 1em 0;\n}\n\n/* ===== Appendix Ref (inline reference) ===== */\nblog-appendix-ref {\n  display: inline;\n}\n\n.blog-appendix-ref-link {\n  color: var(--blog-text);\n  text-decoration: none;\n  font-weight: 500;\n}\n\n.blog-appendix-ref-link:hover {\n  text-decoration: underline;\n}\n\n/* ===== Hide original appendix-item elements ===== */\nblog-appendix-item {\n  display: none;\n}\n";
   styleInject(css_248z$6);
 
-  var css_248z$5 = "blog-code{border-bottom:1px solid rgba(0,0,0,.2);border-top:1px solid rgba(0,0,0,.2);display:block;margin:1.5em 0}blog-code pre{background-color:#fff;font-size:14px;line-height:1.3;margin:0;overflow:auto;padding:16px}blog-code code,blog-code pre{font-family:var(--blog-font-code)}blog-code *,blog-code code,blog-code code *{background:#fff!important;background-color:#fff!important}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#998;font-style:italic}.token.punctuation{color:#333}.token.boolean,.token.constant,.token.number,.token.property,.token.symbol,.token.tag{color:#099}.token.attr-name,.token.builtin,.token.char,.token.selector,.token.string{color:#b84}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url{color:#333}.token.atrule,.token.attr-value,.token.keyword{font-weight:700}.token.class-name,.token.function{color:#900;font-weight:700}.token.important,.token.regex,.token.variable{color:teal}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}#post-page .wrap.article code,.article code{background-color:rgba(0,0,0,.04);border-radius:3px;font-family:var(--blog-font-code);font-size:85%;padding:.2em .4em}blog-code code{background:transparent;font-size:inherit;padding:0}";
+  var css_248z$5 = "/**\n * Blog Post List Styles\n */\n\nblog-post-list {\n  display: block;\n}\n\n.blog-post-item {\n  margin-bottom: 1.5em;\n}\n\n.blog-post-item .post-title {\n  display: inline-block;\n  font-weight: bold;\n  margin-bottom: 0;\n  font-size: 22px;\n}\n\n.blog-post-item .post-title a {\n  text-decoration: none;\n  color: var(--blog-text);\n}\n\n.blog-post-item .post-title a:hover {\n  text-decoration: underline;\n}\n\n.blog-post-item .post-date {\n  text-transform: uppercase;\n  color: var(--blog-text-semi);\n  font-size: 12px;\n  font-weight: bold;\n  margin-top: 4px;\n  margin-bottom: 4px;\n}\n\n.blog-post-item .post-subtitle {\n  font-size: 16px;\n  margin-top: 0;\n  margin-bottom: 0;\n  line-height: 1.5em;\n}\n";
   styleInject(css_248z$5);
 
-  var css_248z$4 = "blog-footnotes{display:block;margin-top:3em}.blog-footnotes-section{padding-top:1.5em}.blog-footnotes-title{color:var(--blog-text);font-size:1.3em;font-weight:600;margin:0 0 1em}.blog-footnotes-list{color:var(--blog-text);font-size:.9em;line-height:1.6;margin:0;padding-left:1.5em}.blog-footnote-item{margin-bottom:.75em}.blog-footnote-backlink{color:var(--blog-text-muted,#666);margin-left:.5em;text-decoration:none}.blog-footnote-backlink:hover{text-decoration:underline}blog-fn-ref{display:inline}.blog-fn-ref-marker{line-height:0}.blog-fn-ref-marker a{color:var(--blog-text);font-size:.75em;text-decoration:none;vertical-align:super}.blog-fn-ref-marker a:hover{text-decoration:underline}blog-footnote{display:none}";
+  var css_248z$4 = "/**\n * <blog-turing-machine> Styles\n */\n\nblog-turing-machine {\n  --tm-cell: 36px;\n  --tm-accent: #2f6fb3;\n  --tm-accept: #2e7d4f;\n  --tm-reject: #b3392f;\n  --tm-line: rgba(0, 0, 0, 0.22);\n  --tm-faint: rgba(0, 0, 0, 0.06);\n\n  display: block;\n  margin: 2em 0;\n}\n\n.tm {\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 6px;\n  background: #fdfdfd;\n  padding: 18px 16px 14px;\n  font-family: var(--blog-font-body);\n}\n\n/* ------------------------------------------------------------------ tape */\n\n.tm-tape {\n  position: relative;\n  overflow: hidden;\n  height: 48px;\n  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);\n  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);\n}\n\n.tm-strip {\n  position: absolute;\n  top: 4px;\n  left: 50%;\n  display: flex;\n  margin-left: calc(var(--tm-cell) / -2);\n  transition: transform 0.22s ease;\n  will-change: transform;\n}\n\n.tm-cell {\n  flex: 0 0 var(--tm-cell);\n  height: 40px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  border: 1px solid var(--tm-line);\n  border-right: none;\n  box-sizing: border-box;\n  background: #fff;\n  font-family: var(--blog-font-code);\n  font-size: 17px;\n  line-height: 1;\n  color: var(--blog-text);\n}\n\n.tm-cell:last-child {\n  border-right: 1px solid var(--tm-line);\n}\n\n.tm-cell.is-head {\n  background: rgba(47, 111, 179, 0.08);\n}\n\n/* The head is a fixed frame; the tape slides underneath it. */\n.tm-head {\n  position: absolute;\n  top: 4px;\n  left: 50%;\n  width: var(--tm-cell);\n  height: 40px;\n  margin-left: calc(var(--tm-cell) / -2);\n  box-sizing: border-box;\n  border: 2px solid var(--tm-accent);\n  border-radius: 2px;\n  z-index: 1;\n  pointer-events: none;\n}\n\n/* ------------------------------------------------------- readout + bars */\n\n.tm-bar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 16px;\n  flex-wrap: wrap;\n  margin-top: 14px;\n}\n\n.tm-readout {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n\n.tm-chip {\n  display: inline-flex;\n  align-items: baseline;\n  gap: 6px;\n  padding: 3px 9px;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 4px;\n  background: #fff;\n  font-family: var(--blog-font-code);\n  font-size: 12px;\n}\n\n.tm-chip-key {\n  color: var(--blog-text-muted);\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n}\n\n.tm-state-name.is-accept {\n  color: var(--tm-accept);\n  font-weight: 700;\n}\n\n.tm-state-name.is-reject {\n  color: var(--tm-reject);\n  font-weight: 700;\n}\n\n/* -------------------------------------------------------------- controls */\n\n.tm-controls {\n  display: flex;\n  gap: 6px;\n}\n\n.tm-btn {\n  padding: 5px 14px;\n  border: 1px solid var(--tm-line);\n  border-radius: 4px;\n  background: #fff;\n  color: var(--blog-text);\n  font-family: var(--blog-font-body);\n  font-size: 13px;\n  cursor: pointer;\n}\n\n.tm-btn:hover:not(:disabled) {\n  background: var(--tm-faint);\n}\n\n.tm-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n.tm-btn-primary:not(:disabled) {\n  border-color: var(--tm-accent);\n  color: var(--tm-accent);\n  font-weight: 600;\n}\n\n.tm-bar-inputs {\n  justify-content: flex-start;\n  gap: 22px;\n}\n\n.tm-field {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  color: var(--blog-text-muted);\n}\n\n.tm-input {\n  width: 150px;\n  padding: 4px 8px;\n  border: 1px solid var(--tm-line);\n  border-radius: 4px;\n  background: #fff;\n  font-family: var(--blog-font-code);\n  font-size: 14px;\n  letter-spacing: 0.08em;\n  color: var(--blog-text);\n}\n\n.tm-input.is-invalid {\n  border-color: var(--tm-reject);\n  color: var(--tm-reject);\n}\n\n.tm-field-speed input {\n  width: 110px;\n  accent-color: var(--tm-accent);\n}\n\n/* --------------------------------------------------------------- verdict */\n\n.tm-verdict {\n  min-height: 1.4em;\n  margin-top: 12px;\n  font-size: 13px;\n  line-height: 1.4em;\n  color: transparent;\n}\n\n.tm-verdict.is-accept {\n  color: var(--tm-accept);\n}\n\n.tm-verdict.is-reject,\n.tm-verdict.is-halt {\n  color: var(--tm-reject);\n}\n\n/* --------------------------------------------------------------- diagram */\n\n.tm-diagram {\n  margin-top: 6px;\n  overflow-x: auto;\n}\n\n.tm-diagram svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  margin: 0 auto;\n  min-width: 420px;\n  overflow: visible;\n}\n\n.tm-edge {\n  fill: none;\n  stroke: var(--tm-line);\n  stroke-width: 1.2;\n  transition: stroke 0.15s ease;\n}\n\n.tm-edge.is-firing {\n  stroke: var(--tm-accent);\n  stroke-width: 2.2;\n}\n\n/* context-stroke lets the shared arrowhead follow each edge's own stroke colour. */\n.tm-diagram marker path {\n  fill: var(--tm-line);\n  fill: context-stroke;\n}\n\n.tm-label rect {\n  fill: #fdfdfd;\n  stroke: none;\n}\n\n.tm-edge-label {\n  fill: var(--blog-text-muted);\n  font-family: var(--blog-font-code);\n  font-size: 10.5px;\n  text-anchor: middle;\n  dominant-baseline: middle;\n  transition: fill 0.15s ease;\n}\n\n.tm-edge-label.is-firing {\n  fill: var(--tm-accent);\n  font-weight: 700;\n}\n\n.tm-node-body {\n  fill: #fff;\n  stroke: var(--tm-line);\n  stroke-width: 1.2;\n  transition: fill 0.15s ease, stroke 0.15s ease;\n}\n\n.tm-node-ring {\n  fill: none;\n  stroke: var(--tm-line);\n  stroke-width: 1.2;\n}\n\n.tm-node-text {\n  fill: var(--blog-text);\n  font-family: var(--blog-font-code);\n  font-size: 12px;\n  text-anchor: middle;\n  dominant-baseline: middle;\n}\n\n.tm-node.is-current .tm-node-body {\n  fill: rgba(47, 111, 179, 0.1);\n  stroke: var(--tm-accent);\n  stroke-width: 2;\n}\n\n.tm-node.is-accept.is-current .tm-node-body {\n  fill: rgba(46, 125, 79, 0.12);\n  stroke: var(--tm-accept);\n}\n\n.tm-node.is-reject.is-current .tm-node-body {\n  fill: rgba(179, 57, 47, 0.12);\n  stroke: var(--tm-reject);\n}\n\n/* ----------------------------------------------------------------- table */\n\n.tm-table-wrap {\n  margin-top: 18px;\n  overflow-x: auto;\n}\n\ntable.tm-table {\n  width: auto;\n  min-width: 320px;\n  margin: 0 auto;\n  border-collapse: collapse;\n  font-family: var(--blog-font-code);\n  font-size: 12px;\n}\n\ntable.tm-table :is(th, td) {\n  border: 1px solid var(--blog-rule-light);\n  padding: 5px 12px;\n  text-align: center;\n  background: #fff;\n  transition: background 0.15s ease, color 0.15s ease;\n}\n\ntable.tm-table tr {\n  background: none;\n  border-top: none;\n}\n\ntable.tm-table thead th {\n  color: var(--blog-text-muted);\n  font-weight: 400;\n  font-size: 13px;\n}\n\ntable.tm-table tbody th {\n  text-align: right;\n  font-weight: 400;\n  color: var(--blog-text-semi);\n}\n\n.tm-corner {\n  border-top: none !important;\n  border-left: none !important;\n}\n\n.tm-cell-empty {\n  color: rgba(0, 0, 0, 0.2);\n}\n\ntable.tm-table tbody th.is-current {\n  color: var(--tm-accent);\n  font-weight: 700;\n}\n\ntable.tm-table td.is-firing {\n  background: rgba(47, 111, 179, 0.12);\n  color: var(--tm-accent);\n  font-weight: 700;\n}\n\n/* ---------------------------------------------------------------- legend */\n\n.tm-legend {\n  margin: 16px 0 0;\n  font-size: 12px;\n  line-height: 1.5em;\n  color: var(--blog-text-muted);\n}\n\n.tm-mono {\n  font-family: var(--blog-font-code);\n}\n\n/* ---------------------------------------------------------------- mobile */\n\n@media screen and (max-width: 700px) {\n  blog-turing-machine {\n    --tm-cell: 32px;\n  }\n\n  .tm {\n    padding: 14px 10px 10px;\n  }\n\n  .tm-bar {\n    justify-content: flex-start;\n  }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .tm-strip {\n    transition: none;\n  }\n}\n";
   styleInject(css_248z$4);
 
-  var css_248z$3 = "blog-cite{display:inline}.blog-cite-link{color:var(--blog-text);text-decoration:none}.blog-cite-link:hover{text-decoration:underline}.blog-bibliography{margin-top:3em;padding-top:1.5em}.blog-bibliography-title{color:var(--blog-text);font-size:1.3em;font-weight:600;margin:0 0 1em}.blog-bibliography ol.bibliography{color:var(--blog-text-semi);font-size:13px;line-height:1.5em;margin:0;padding-left:1.5em}.blog-bibliography ol.bibliography li{margin-bottom:.75em}.blog-bibliography ol.bibliography li em{font-style:italic}";
+  var css_248z$3 = "/**\n * <blog-hopfield> Styles\n */\n\nblog-hopfield {\n  --hp-accent: #2f6fb3;\n  --hp-good: #2e7d4f;\n  --hp-bad: #b3392f;\n  --hp-line: rgba(0, 0, 0, 0.22);\n  --hp-faint: rgba(0, 0, 0, 0.06);\n\n  display: block;\n  margin: 2em 0;\n}\n\n.hp {\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 6px;\n  background: #fdfdfd;\n  padding: 18px 16px 14px;\n  font-family: var(--blog-font-body);\n}\n\n.hp-loading,\n.hp-error {\n  margin: 0;\n  padding: 30px 0;\n  text-align: center;\n  font-size: 13px;\n  color: var(--blog-text-muted);\n}\n\n.hp-error {\n  color: var(--hp-bad);\n}\n\n/* ------------------------------------------------------------------ layout */\n\n.hp-main {\n  display: flex;\n  gap: 22px;\n  align-items: flex-start;\n}\n\n.hp-stage {\n  flex: 0 0 auto;\n}\n\n.hp-side {\n  flex: 1 1 auto;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n}\n\n.hp-label {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  color: var(--blog-text-muted);\n}\n\n/* ------------------------------------------------------------------ canvas */\n\n.hp-canvas {\n  display: block;\n  width: 288px;\n  height: 288px;\n  border: 1px solid var(--hp-line);\n  border-radius: 3px;\n  background: #fff;\n  image-rendering: pixelated;\n  cursor: crosshair;\n  touch-action: none;\n}\n\n.hp-hint {\n  margin: 8px 0 0;\n  font-size: 11px;\n  line-height: 1.4em;\n  color: var(--blog-text-muted);\n}\n\n.hp-hint kbd {\n  font-family: var(--blog-font-code);\n  font-size: 10px;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 3px;\n  padding: 0 3px;\n}\n\n/* ---------------------------------------------------------------- memories */\n\n.hp-thumbs {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n\n.hp-thumb {\n  padding: 0;\n  border: 1px solid var(--hp-line);\n  border-radius: 3px;\n  background: #fff;\n  cursor: pointer;\n  line-height: 0;\n}\n\n.hp-thumb canvas {\n  display: block;\n  width: 56px;\n  height: 56px;\n  image-rendering: pixelated;\n}\n\n.hp-thumb:hover {\n  border-color: var(--hp-accent);\n}\n\n.hp-thumb.is-cue {\n  border-color: var(--hp-accent);\n  box-shadow: 0 0 0 2px rgba(47, 111, 179, 0.18);\n}\n\n/* ---------------------------------------------------------------- overlaps */\n\n.hp-bar-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-bottom: 3px;\n  font-family: var(--blog-font-code);\n  font-size: 11px;\n  color: var(--blog-text-muted);\n}\n\n.hp-bar-name {\n  flex: 0 0 46px;\n}\n\n.hp-bar-track {\n  flex: 1 1 auto;\n  height: 7px;\n  border-radius: 4px;\n  background: var(--hp-faint);\n  overflow: hidden;\n}\n\n.hp-bar-fill {\n  display: block;\n  height: 100%;\n  width: 0;\n  border-radius: 4px;\n  background: var(--hp-line);\n  transition: width 0.1s linear;\n}\n\n.hp-bar-val {\n  flex: 0 0 36px;\n  text-align: right;\n  font-variant-numeric: tabular-nums;\n}\n\n.hp-bar-row.is-best {\n  color: var(--blog-text);\n}\n\n.hp-bar-row.is-best .hp-bar-fill {\n  background: var(--hp-accent);\n}\n\n.hp-bar-row.is-best.is-negative .hp-bar-fill {\n  background: var(--hp-bad);\n}\n\n/* ------------------------------------------------------------------ energy */\n\n.hp-trace {\n  display: block;\n  width: 100%;\n  height: 46px;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 3px;\n  background: #fff;\n}\n\n/* --------------------------------------------------------- bars + controls */\n\n.hp-bar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 16px;\n  flex-wrap: wrap;\n  margin-top: 16px;\n}\n\n.hp-readout {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n\n.hp-chip {\n  display: inline-flex;\n  align-items: baseline;\n  gap: 6px;\n  padding: 3px 9px;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 4px;\n  background: #fff;\n  font-family: var(--blog-font-code);\n  font-size: 12px;\n}\n\n.hp-chip-key {\n  color: var(--blog-text-muted);\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n}\n\n.hp-status:empty {\n  display: none;\n}\n\n.hp-status.is-good {\n  color: var(--hp-good);\n  border-color: rgba(46, 125, 79, 0.4);\n}\n\n.hp-status.is-bad {\n  color: var(--hp-bad);\n  border-color: rgba(179, 57, 47, 0.4);\n}\n\n.hp-controls,\n.hp-actions {\n  display: flex;\n  gap: 6px;\n}\n\n.hp-btn {\n  padding: 5px 14px;\n  border: 1px solid var(--hp-line);\n  border-radius: 4px;\n  background: #fff;\n  color: var(--blog-text);\n  font-family: var(--blog-font-body);\n  font-size: 13px;\n  cursor: pointer;\n}\n\n.hp-btn:hover:not(:disabled) {\n  background: var(--hp-faint);\n}\n\n.hp-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n.hp-btn-primary:not(:disabled) {\n  border-color: var(--hp-accent);\n  color: var(--hp-accent);\n  font-weight: 600;\n}\n\n.hp-btn-sm {\n  padding: 4px 10px;\n  font-size: 12px;\n}\n\n.hp-bar-inputs {\n  justify-content: flex-start;\n  gap: 20px;\n}\n\n.hp-field {\n  display: inline-flex;\n  align-items: center;\n  gap: 8px;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  color: var(--blog-text-muted);\n}\n\n.hp-field input[type='range'] {\n  width: 96px;\n  accent-color: var(--hp-accent);\n}\n\n.hp-noise-val {\n  font-family: var(--blog-font-code);\n  font-variant-numeric: tabular-nums;\n  min-width: 30px;\n}\n\n/* ------------------------------------------------------------------ legend */\n\n.hp-legend {\n  margin: 16px 0 0;\n  font-size: 12px;\n  line-height: 1.5em;\n  color: var(--blog-text-muted);\n}\n\n.hp-mono {\n  font-family: var(--blog-font-code);\n}\n\n/* ------------------------------------------------------------------ mobile */\n\n@media screen and (max-width: 700px) {\n  .hp {\n    padding: 14px 10px 10px;\n  }\n\n  .hp-main {\n    flex-direction: column;\n    align-items: stretch;\n    gap: 16px;\n  }\n\n  .hp-canvas {\n    width: 100%;\n    height: auto;\n    max-width: 288px;\n    margin: 0 auto;\n  }\n\n  .hp-bar,\n  .hp-bar-inputs {\n    justify-content: flex-start;\n  }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .hp-bar-fill {\n    transition: none;\n  }\n}\n";
   styleInject(css_248z$3);
 
-  var css_248z$2 = "blog-math{display:inline}blog-math.blog-math-block{display:block;margin:1.5em 0;overflow:visible;text-align:center}blog-math.blog-math-inline{display:inline}.blog-math-error{background:rgba(192,57,43,.1);border-radius:3px;color:#c0392b;font-family:var(--blog-font-code);font-size:.9em;padding:.2em .4em}.katex .texttt{font-family:var(--blog-font-code)!important}blog-math.blog-math-block .katex-display{margin:0}";
+  var css_248z$2 = "/**\n * <blog-neuroglancer> Styles\n */\n\nblog-neuroglancer {\n  --ng-accent: #2f6fb3;\n  --ng-line: rgba(0, 0, 0, 0.22);\n  display: block;\n  margin: 2em 0;\n}\n\n.ng {\n  position: relative;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 6px;\n  overflow: hidden;\n  background: #fdfdfd;\n}\n\n/* ------------------------------------------------------------------ poster */\n\n.ng-poster {\n  height: var(--ng-height, 480px);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  /* A faint dotted field, so the empty state reads as \"3D scene\", not \"broken\". */\n  background:\n    radial-gradient(circle at center, rgba(47, 111, 179, 0.05), transparent 70%),\n    repeating-radial-gradient(circle at center, transparent 0 11px, rgba(0, 0, 0, 0.03) 11px 12px);\n  text-align: center;\n}\n\n.ng-poster-body {\n  max-width: 380px;\n  padding: 24px;\n}\n\n.ng-glyph {\n  width: 52px;\n  height: 52px;\n  color: var(--ng-accent);\n  opacity: 0.85;\n  margin-bottom: 14px;\n}\n\n.ng-title {\n  margin: 0 0 6px;\n  font-family: var(--blog-font-body);\n  font-size: 16px;\n  font-weight: 600;\n  color: var(--blog-text);\n}\n\n.ng-sub {\n  margin: 0 0 18px;\n  font-size: 13px;\n  line-height: 1.5em;\n  color: var(--blog-text-muted);\n}\n\n.ng-load {\n  padding: 8px 20px;\n  border: 1px solid var(--ng-accent);\n  border-radius: 4px;\n  background: var(--ng-accent);\n  color: #fff;\n  font-family: var(--blog-font-body);\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n}\n\n.ng-load:hover {\n  background: #285d97;\n}\n\n.ng-note {\n  margin: 14px 0 0;\n  font-size: 11px;\n  line-height: 1.5em;\n  color: var(--blog-text-muted);\n}\n\n.ng-note a,\n.ng-bar a {\n  color: var(--ng-accent);\n  text-decoration: underline;\n}\n\n.ng-error {\n  padding: 40px;\n  text-align: center;\n  font-size: 13px;\n  color: #b3392f;\n}\n\n/* ------------------------------------------------------------------- frame */\n\n.ng-frame {\n  display: block;\n  width: 100%;\n  height: var(--ng-height, 480px);\n  border: 0;\n  background: #000;\n}\n\n.ng-bar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  padding: 7px 12px;\n  border-top: 1px solid var(--blog-rule-light);\n  background: #fff;\n  font-size: 12px;\n}\n\n.ng-bar a {\n  font-family: var(--blog-font-body);\n}\n\n.ng-close {\n  padding: 3px 12px;\n  border: 1px solid var(--ng-line);\n  border-radius: 4px;\n  background: #fff;\n  color: var(--blog-text);\n  font-family: var(--blog-font-body);\n  font-size: 12px;\n  cursor: pointer;\n}\n\n.ng-close:hover {\n  background: rgba(0, 0, 0, 0.05);\n}\n\n@media screen and (max-width: 700px) {\n  .ng-poster-body {\n    padding: 18px;\n  }\n}\n";
   styleInject(css_248z$2);
 
-  var css_248z$1 = "blog-appendix{display:block;margin-top:3em}.blog-appendix-section{padding-top:1.5em}.blog-appendix-title{color:var(--blog-text);font-size:1.3em;font-weight:600;margin:0 0 1em}.blog-appendix-items{margin-top:1em}.blog-appendix-item-rendered{border-top:1px dashed #ddd;margin-bottom:2em;padding-top:1em}.blog-appendix-item-rendered:first-child{border-top:none;padding-top:0}.blog-appendix-item-title{color:var(--blog-text);font-size:1.1em;font-weight:600;margin:0 0 .75em}.blog-appendix-item-content{color:var(--blog-text);line-height:1.7}.blog-appendix-item-content p{margin:.75em 0}.blog-appendix-item-content blog-math.blog-math-block{display:block;margin:1em 0}blog-appendix-ref{display:inline}.blog-appendix-ref-link{color:var(--blog-text);font-weight:500;text-decoration:none}.blog-appendix-ref-link:hover{text-decoration:underline}blog-appendix-item{display:none}";
+  var css_248z$1 = "/**\n * <blog-mp-net> Styles\n */\n\nblog-mp-net {\n  --mp-accent: #2f6fb3;\n  --mp-veto: #b3392f;\n  --mp-line: rgba(0, 0, 0, 0.55);\n  --mp-idle: rgba(0, 0, 0, 0.28);\n\n  display: block;\n  margin: 1.5em 0;\n}\n\n.mp {\n  text-align: center;\n}\n\n.mp svg {\n  display: block;\n  width: 100%;\n  max-width: 420px;\n  height: auto;\n  margin: 0 auto;\n  overflow: visible;\n}\n\n/* ------------------------------------------------------------------ neurons */\n\n.mp-body {\n  fill: #fff;\n  stroke: var(--mp-line);\n  stroke-width: 1.6;\n  stroke-linejoin: round;\n  transition: fill 0.15s ease, stroke 0.15s ease;\n}\n\n.mp-neuron.is-on .mp-body {\n  fill: rgba(47, 111, 179, 0.14);\n  stroke: var(--mp-accent);\n  stroke-width: 2;\n}\n\n.mp-label {\n  fill: var(--blog-text);\n  font-family: var(--blog-font-code);\n  font-size: 15px;\n  text-anchor: middle;\n  dominant-baseline: central;\n}\n\n.mp-neuron.is-on .mp-label {\n  fill: var(--mp-accent);\n  font-weight: 700;\n}\n\n.mp-theta {\n  fill: var(--blog-text-muted);\n  font-family: var(--blog-font-code);\n  font-size: 11px;\n  text-anchor: middle;\n  dominant-baseline: central;\n}\n\n.mp-clickable {\n  cursor: pointer;\n}\n\n.mp-clickable .mp-body {\n  stroke-dasharray: 4 2.5;\n}\n\n.mp-clickable:hover .mp-body {\n  fill: rgba(47, 111, 179, 0.08);\n}\n\n/* -------------------------------------------------------- edges + synapses */\n\n.mp-edge,\n.mp-stub {\n  fill: none;\n  stroke: var(--mp-idle);\n  stroke-width: 1.6;\n  transition: stroke 0.15s ease;\n}\n\n.mp-edge.is-active {\n  stroke: var(--mp-accent);\n  stroke-width: 2.2;\n}\n\n/* The output neuron's axon lights up when the neuron fires. */\n.mp-neuron.is-on .mp-stub {\n  stroke: var(--mp-accent);\n  stroke-width: 2.2;\n}\n\n.mp-syn {\n  transition: fill 0.15s ease, stroke 0.15s ease;\n}\n\n/* Excitatory: filled dot, lit when it carries a spike. */\n.mp-exc {\n  fill: var(--mp-idle);\n  stroke: none;\n}\n\n.mp-exc.is-active {\n  fill: var(--mp-accent);\n}\n\n/* Inhibitory: hollow ring, turns red when it is actively vetoing. */\n.mp-inh {\n  fill: #fdfdfd;\n  stroke: var(--mp-idle);\n  stroke-width: 2;\n}\n\n.mp-inh.is-active {\n  stroke: var(--mp-veto);\n}\n\n/* ------------------------------------------------------------------ readout */\n\n.mp-readout {\n  margin-top: 6px;\n  font-family: var(--blog-font-body);\n  font-size: 14px;\n  color: var(--blog-text-semi);\n}\n\n.mp-mono {\n  font-family: var(--blog-font-code);\n  font-weight: 600;\n  color: var(--blog-text);\n}\n\n.mp-out {\n  padding: 0 5px;\n  border-radius: 3px;\n  background: rgba(0, 0, 0, 0.05);\n}\n\n.mp-out.is-on {\n  color: var(--mp-accent);\n  background: rgba(47, 111, 179, 0.12);\n}\n\n.mp-hint {\n  margin: 8px 0 0;\n  font-size: 11px;\n  color: var(--blog-text-muted);\n}\n\n.mp-error {\n  font-size: 13px;\n  color: var(--mp-veto);\n}\n";
   styleInject(css_248z$1);
 
-  var css_248z = "blog-post-list{display:block}.blog-post-item{margin-bottom:1.5em}.blog-post-item .post-title{display:inline-block;font-size:22px;font-weight:700;margin-bottom:0}.blog-post-item .post-title a{color:var(--blog-text);text-decoration:none}.blog-post-item .post-title a:hover{text-decoration:underline}.blog-post-item .post-date{color:var(--blog-text-semi);font-size:12px;font-weight:700;margin-bottom:4px;margin-top:4px;text-transform:uppercase}.blog-post-item .post-subtitle{font-size:16px;line-height:1.5em;margin-bottom:0;margin-top:0}";
+  var css_248z = "/**\n * <blog-longmult> Styles\n */\n\nblog-longmult {\n  --lm-accent: #2f6fb3;\n  --lm-done: #2e7d4f;\n  --lm-line: rgba(0, 0, 0, 0.28);\n  --lm-idle: rgba(0, 0, 0, 0.22);\n\n  display: block;\n  margin: 2em 0;\n}\n\n.lm {\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 6px;\n  background: #fdfdfd;\n  padding: 18px 16px 14px;\n  font-family: var(--blog-font-body);\n}\n\n.lm-main {\n  display: flex;\n  gap: 22px;\n  align-items: flex-start;\n}\n\n.lm-diagram {\n  flex: 1 1 60%;\n  min-width: 0;\n}\n\n.lm-diagram svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  overflow: visible;\n}\n\n.lm-side {\n  flex: 1 1 40%;\n  min-width: 0;\n  align-self: stretch;\n  display: flex;\n  flex-direction: column;\n}\n\n/* ------------------------------------------------------------------- nodes */\n\n.lm-node rect {\n  fill: #fff;\n  stroke: var(--lm-idle);\n  stroke-width: 1.5;\n  transition: fill 0.15s ease, stroke 0.15s ease;\n}\n\n.lm-decision rect {\n  fill: #f6f6f6;\n}\n\n.lm-node text {\n  fill: var(--blog-text);\n  font-family: var(--blog-font-body);\n  font-size: 13px;\n  text-anchor: middle;\n  dominant-baseline: central;\n  transition: fill 0.15s ease;\n}\n\n.lm-node.is-current rect {\n  fill: rgba(47, 111, 179, 0.13);\n  stroke: var(--lm-accent);\n  stroke-width: 2.4;\n}\n\n.lm-node.is-current text {\n  fill: var(--lm-accent);\n  font-weight: 700;\n}\n\n.lm-node.is-done rect {\n  fill: rgba(46, 125, 79, 0.13);\n  stroke: var(--lm-done);\n  stroke-width: 2.4;\n}\n\n.lm-node.is-done text {\n  fill: var(--lm-done);\n  font-weight: 700;\n}\n\n.lm-terminal {\n  fill: #fff;\n  stroke: var(--lm-idle);\n  stroke-width: 2;\n}\n\n/* ------------------------------------------------------------------- edges */\n\n.lm-edge {\n  fill: none;\n  stroke: var(--lm-line);\n  stroke-width: 1.5;\n}\n\n.lm-diagram marker path {\n  fill: var(--lm-line);\n}\n\n.lm-edge-label {\n  fill: var(--blog-text-muted);\n  font-family: var(--blog-font-code);\n  font-size: 11px;\n  text-anchor: middle;\n  dominant-baseline: central;\n}\n\n/* --------------------------------------------------------------- worktable */\n\n.lm-work {\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  padding: 14px 10px;\n  border: 1px solid var(--blog-rule-light);\n  border-radius: 4px;\n  background: #fff;\n  font-family: var(--blog-font-code);\n}\n\n.lm-drow {\n  display: flex;\n  justify-content: flex-end;\n}\n\n.lm-cell {\n  width: 22px;\n  height: 26px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 18px;\n  color: var(--blog-text);\n}\n\n.lm-cell.lm-op {\n  color: var(--blog-text-muted);\n}\n\n.lm-cell.is-hi {\n  color: var(--lm-accent);\n  font-weight: 700;\n  background: rgba(47, 111, 179, 0.12);\n  border-radius: 3px;\n}\n\n.lm-rule {\n  height: 2px;\n  align-self: flex-end;\n  width: 100%;\n  max-width: 220px;\n  background: var(--lm-line);\n  margin: 3px 0;\n}\n\n.lm-committed .lm-cell {\n  color: var(--blog-text-semi);\n}\n\n.lm-building .lm-cell {\n  color: var(--lm-accent);\n  font-weight: 600;\n}\n\n.lm-answer .lm-cell {\n  color: var(--lm-done);\n  font-weight: 700;\n}\n\n.lm-scratch {\n  margin-top: 12px;\n  padding-top: 10px;\n  border-top: 1px dashed var(--blog-rule-light);\n  width: 100%;\n  text-align: center;\n  display: flex;\n  flex-direction: column;\n  gap: 3px;\n  font-size: 14px;\n}\n\n.lm-mono {\n  color: var(--lm-accent);\n  font-weight: 600;\n}\n\n.lm-shift {\n  font-size: 11px;\n  color: var(--blog-text-muted);\n}\n\n/* ------------------------------------------------------------------- note */\n\n.lm-note {\n  min-height: 2.6em;\n  margin: 10px 4px 0;\n  font-size: 12.5px;\n  line-height: 1.4em;\n  color: var(--blog-text-muted);\n  text-align: center;\n}\n\n/* ---------------------------------------------------------- bar + controls */\n\n.lm-bar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 16px;\n  flex-wrap: wrap;\n  margin-top: 14px;\n  padding-top: 12px;\n  border-top: 1px solid var(--blog-rule-light);\n}\n\n.lm-factors {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  font-family: var(--blog-font-code);\n  font-size: 18px;\n  color: var(--blog-text-muted);\n}\n\n.lm-in {\n  width: 66px;\n  padding: 5px 8px;\n  border: 1px solid var(--lm-idle);\n  border-radius: 4px;\n  background: #fff;\n  font-family: var(--blog-font-code);\n  font-size: 16px;\n  text-align: center;\n  color: var(--blog-text);\n}\n\n.lm-controls {\n  display: flex;\n  gap: 6px;\n}\n\n.lm-btn {\n  padding: 5px 14px;\n  border: 1px solid var(--lm-idle);\n  border-radius: 4px;\n  background: #fff;\n  color: var(--blog-text);\n  font-family: var(--blog-font-body);\n  font-size: 13px;\n  cursor: pointer;\n}\n\n.lm-btn:hover:not(:disabled) {\n  background: rgba(0, 0, 0, 0.05);\n}\n\n.lm-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n.lm-btn-primary:not(:disabled) {\n  border-color: var(--lm-accent);\n  color: var(--lm-accent);\n  font-weight: 600;\n}\n\n/* ------------------------------------------------------------------ mobile */\n\n@media screen and (max-width: 640px) {\n  .lm-main {\n    flex-direction: column;\n  }\n\n  .lm-side {\n    width: 100%;\n  }\n}\n";
   styleInject(css_248z);
 
   /**
@@ -22333,3 +24339,4 @@ var BlogComponents = (function (exports) {
   return exports;
 
 })({});
+//# sourceMappingURL=blog-components.js.map

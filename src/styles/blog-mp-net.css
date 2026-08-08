@@ -1,0 +1,158 @@
+/**
+ * <blog-mp-net> Styles
+ */
+
+blog-mp-net {
+  --mp-accent: #2f6fb3;
+  --mp-veto: #b3392f;
+  --mp-line: rgba(0, 0, 0, 0.55);
+  --mp-idle: rgba(0, 0, 0, 0.28);
+
+  display: block;
+  margin: 1.5em 0;
+}
+
+.mp {
+  text-align: center;
+}
+
+.mp svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* ------------------------------------------------------------------ neurons */
+
+.mp-body {
+  fill: #fff;
+  stroke: var(--mp-line);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.mp-neuron.is-on .mp-body {
+  fill: rgba(47, 111, 179, 0.14);
+  stroke: var(--mp-accent);
+  stroke-width: 2;
+}
+
+.mp-label {
+  fill: var(--blog-text);
+  font-family: var(--blog-font-code);
+  font-size: 15px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.mp-neuron.is-on .mp-label {
+  fill: var(--mp-accent);
+  font-weight: 700;
+}
+
+.mp-theta {
+  fill: var(--blog-text-muted);
+  font-family: var(--blog-font-code);
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.mp-clickable {
+  cursor: pointer;
+}
+
+.mp-clickable .mp-body {
+  stroke-dasharray: 4 2.5;
+}
+
+.mp-clickable:hover .mp-body {
+  fill: rgba(47, 111, 179, 0.08);
+}
+
+/* -------------------------------------------------------- edges + synapses */
+
+.mp-edge,
+.mp-stub {
+  fill: none;
+  stroke: var(--mp-idle);
+  stroke-width: 1.6;
+  transition: stroke 0.15s ease;
+}
+
+.mp-edge.is-active {
+  stroke: var(--mp-accent);
+  stroke-width: 2.2;
+}
+
+/* The output neuron's axon lights up when the neuron fires. */
+.mp-neuron.is-on .mp-stub {
+  stroke: var(--mp-accent);
+  stroke-width: 2.2;
+}
+
+.mp-syn {
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+/* Excitatory: filled dot, lit when it carries a spike. */
+.mp-exc {
+  fill: var(--mp-idle);
+  stroke: none;
+}
+
+.mp-exc.is-active {
+  fill: var(--mp-accent);
+}
+
+/* Inhibitory: hollow ring, turns red when it is actively vetoing. */
+.mp-inh {
+  fill: #fdfdfd;
+  stroke: var(--mp-idle);
+  stroke-width: 2;
+}
+
+.mp-inh.is-active {
+  stroke: var(--mp-veto);
+}
+
+/* ------------------------------------------------------------------ readout */
+
+.mp-readout {
+  margin-top: 6px;
+  font-family: var(--blog-font-body);
+  font-size: 14px;
+  color: var(--blog-text-semi);
+}
+
+.mp-mono {
+  font-family: var(--blog-font-code);
+  font-weight: 600;
+  color: var(--blog-text);
+}
+
+.mp-out {
+  padding: 0 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mp-out.is-on {
+  color: var(--mp-accent);
+  background: rgba(47, 111, 179, 0.12);
+}
+
+.mp-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--blog-text-muted);
+}
+
+.mp-error {
+  font-size: 13px;
+  color: var(--mp-veto);
+}

@@ -65,7 +65,7 @@
 </p>
 
 <p>Despite my dramatic and elaborate description of this reflex, it is actually one of the simplest neural circuits we know of in the nervous system.
-        Circuits far more complex are thought to underlie every percept you experience, every thought you have, and every action you take.
+        Circuits far more complex are thought to underlie every percept you experience, every thought that enters your awareness, and every action you take.
     Understanding how those circuits are built and how they enable those experiences, thoughts, and actions is therefore one of the grand aims of science.
     How does the brain shape who we are and how we interface with the world around us? For the last 150 years neuroscience has attempted to answer this question.
 </p>
@@ -118,7 +118,7 @@
 
 <p>
     Neurotransmitters constitute many of the biggest household names in neuroscience: dopamine, serotonin, adrenaline, endorphins, etc.
-    As you have likely heard, these chemicals play a large role in determining our affective state, motivation, and arousal.
+    As you have likely heard, these chemicals play a large role in determining our arousal, motivation, and overall affective state.
     The saliency of those aspects of our lives may lead one to think that neurons which release those neurotransmitters would be widespread and numerous, but in fact they represent roughly 1% of all the neurons in the brain<blog-fn-ref key="merfish"></blog-fn-ref><blog-fn-ref key="widespread"></blog-fn-ref>.
     Instead, the most prevalent of the neurotransmitters are glutamate and gamma-aminobutyric acid (GABA).
     Compared to the better known brain chemicals, glutamate and GABAs effect on their target neurons are simple: they can either <em>excite</em> or <em>inhibit</em> them respectively.
@@ -130,7 +130,7 @@
     If a neuron is <em>inhibitory</em>, that means it makes its targets less likely to fire.
     If we include neurotransmitters besides glutamate and GABA, this clean picture dividing excitatory and inhibitory becomes much more complex<blog-fn-ref key="receptors"></blog-fn-ref>, but for these two it works<blog-fn-ref key="gaba-metabotropic"></blog-fn-ref>.
     What exactly do I mean by "propensity to fire"? Once initiated the action potential is an irreversible event; there is no <blog-math>\frac{1}{2}</blog-math> action potential or <blog-math>\frac{5}{6}</blog-math> action potential, it is an all-or-none event.
-    However, in order for an action potential to unfold, it must first surpass its action potential threshold, a minimum voltage required to kickstart the action potential machinery.
+    However, in order for an action potential to unfold, it must first surpass its action potential threshold, the minimum change in voltage required to kickstart the action potential machinery.
     As the cell receives excitatory and inhibitory inputs from its upstream neurons, the voltage across the cell is pushed up and down respectively.
     Only if there is enough excitation from many excitatory signals arriving in quick succession, (or a lack of inhibitory signals) will the neuron surpass its threshold and fire.
     This is the general logic of neural communication: neurons, depending on if they are excitatory or inhibitory, make their target neurons more or less likely to fire; a neuron may receive inputs from hundreds, even thousands of neurons of both types, and through the integration of all those signals across space and time<blog-fn-ref key="integration"></blog-fn-ref>, may or may not fire at any one moment.
@@ -169,11 +169,68 @@
 </p>
 
 <blog-figure>
-    <img src="/assets/images/epg.svg"
-    style="width: 100%; display: block; margin: 0 auto"/>
-    <figcaption>
-        Ellipsoid body neurons
-    </figcaption>
+<blog-neuroglancer height="460" autoload
+    caption="Ring neurons of the Drosophila ellipsoid body, reconstructed from the FlyWire connectome.">
+  <script type="application/json">
+      {
+        "dimensions": {
+          "x": [ 1.6e-08, "m" ],
+          "y": [ 1.6e-08, "m" ],
+          "z": [ 4e-08, "m" ]
+        },
+        "position": [ 33344.5, 17889.5, 3714.5 ],
+        "crossSectionScale": 1,
+        "projectionOrientation": [
+          -0.16987945139408112,
+          0.04958106577396393,
+          0.001081306952983141,
+          0.9842162132263184
+        ],
+        "projectionScale": 30000,
+        "layers": [
+          {
+            "type": "image",
+            "source": "precomputed://https://bossdb-open-data.s3.amazonaws.com/flywire/fafbv14",
+            "tab": "source",
+            "name": "EM"
+          },
+          {
+            "type": "segmentation",
+            "source": "precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3",
+            "tab": "source",
+            "objectAlpha": 0.05,
+            "hideSegmentZero": false,
+            "segments": [ "1" ],
+            "segmentColors": { "1": "#b5b5b5" },
+            "name": "brain_mesh_v3"
+          },
+          {
+            "type": "segmentation",
+            "source": "precomputed://gs://flywire_v141_m630",
+            "tab": "segments",
+            "segments": [
+              "720575940630013143",
+              "720575940627761162",
+              "720575940605824945",
+              "720575940641679245"
+            ],
+            "name": "flywire_v141_m630"
+          }
+        ],
+        "showDefaultAnnotations": false,
+        "showSlices": false,
+        "selectedLayer": { "layer": "flywire_v141_m630" },
+        "projectionBackgroundColor": "#ffffff",
+        "layout": { "type": "3d", "orthographicProjection": true }
+      }
+  </script>
+</blog-neuroglancer>
+<figcaption>
+    Four ring neurons of the ellipsoid body, reconstructed from the
+    <a href="https://flywire.ai">FlyWire</a> electron-microscopy connectome. Drag to rotate and
+    scroll to zoom &mdash; notice how each cell's processes sweep out a ring.
+    Data: FlyWire (Dorkenwald et al., 2024).
+</figcaption>
 </blog-figure>
 
 <p>
@@ -311,9 +368,12 @@
 </p>
 
 <blog-figure>
-    <img src="/assets/images/long-multiplication.svg"
-         style="width: 400px; display: block; margin: 0 auto"/>
-    <figcaption>Simple state diagram for the long-multiplication algorithm.</figcaption>
+    <blog-longmult top="17" bottom="24"></blog-longmult>
+    <figcaption>
+        The long-multiplication algorithm as a state machine. Press <em>Step</em> to advance one
+        transition at a time, or <em>Run</em>: the highlighted state travels the diagram while the
+        worked example keeps pace beside it. Try your own factors.
+    </figcaption>
 </blog-figure>
 
 <p>
@@ -466,10 +526,52 @@
 <p>
     Now, you still might not be convinced that this will work.
     I myself cannot look at the table and quickly understand the logic underlying the algorithm.
-    However, you can see this exact procedure play out at <a href="https://turingmachine.io/">this link</a>.
-    The authors of the website choose to represent the transition function as a state diagram rather than a table, which can help in understanding.
-    See if you can figure out how the algorithm works by stepping through the transitions.
+    So below is the machine itself; press <em>Step</em> to advance it one transition at a time, or <em>Run</em> to let it go.
+    The rule about to fire is highlighted in both the state diagram and the table, which is the same table as the one above.
+    Redrawing the transition function as a diagram helps a great deal, and watching the tape get eaten from both ends makes the logic of the algorithm much easier to see.
+    See if you can figure out how it works before reading on, and try feeding it your own strings.
 </p>
+
+<blog-figure>
+<blog-turing-machine
+    tape="abba"
+    start="start"
+    accept="accept"
+    reject="reject"
+    accept-message="Accepted — the input is a palindrome."
+    reject-message="Rejected — the input is not a palindrome."
+    layout="start:70,200; haveA:210,90; matchA:370,90; haveB:210,310; matchB:370,310; back:530,200; accept:700,80; reject:700,320"
+    curve="matchA>reject:90; matchB>accept:-90; back>start:-60">
+# state, read -> next state, write, move
+start,  a -> haveA,  _, R
+start,  b -> haveB,  _, R
+start,  _ -> accept, _, R
+
+haveA,  a -> haveA,  a, R
+haveA,  b -> haveA,  b, R
+haveA,  _ -> matchA, _, L
+
+haveB,  a -> haveB,  a, R
+haveB,  b -> haveB,  b, R
+haveB,  _ -> matchB, _, L
+
+matchA, a -> back,   _, L
+matchA, b -> reject, b, R
+matchA, _ -> accept, _, R
+
+matchB, a -> reject, a, R
+matchB, b -> back,   _, L
+matchB, _ -> accept, _, R
+
+back,   a -> back,   a, L
+back,   b -> back,   b, L
+back,   _ -> start,  _, R
+</blog-turing-machine>
+<figcaption>
+    The palindrome checker, running the transition function from the table above.
+    Inspired by <a href="https://turingmachine.io/">turingmachine.io</a>, which is worth a visit for the many other machines they have implemented.
+</figcaption>
+</blog-figure>
 
 <p>
     If you don't feel like doing that I will briefly outline how it works on the sequence <blog-math>abba</blog-math>.
@@ -524,7 +626,7 @@
 <p>
     By the early 20th century, the all-or-none aspect of the action potential had been well established, though the exact biophysical mechanism had yet to be worked out.
     At some point in the 1920's, McCulloch had come to believe that the action-potential made up the mental-atoms he was seeking.
-    Through the mechanisms of neural excitation and inhibition, he believed that networks of neurons were used by the brain to perform logical operations to construct our mental world.
+    He believed that networks of neurons conspired together through excitation and inhibition to perform logical operations and construct our mental world.
     Independently, the young biophysicist Walter Pitts had also come to see the brain as fundamentally a logical machine.
 </p>
 
@@ -542,9 +644,12 @@
 </p>
 
 <blog-figure>
-    <img src="/assets/images/MP_net.png"
-         style="width: 400px; display: block; margin: 0 auto; margin-right: 125px"/>
-    <figcaption>A McCulloch Pitts network that implements the <blog-math>\text{AND}</blog-math> function</figcaption>
+    <blog-mp-net type="and"></blog-mp-net>
+    <figcaption>
+        A McCulloch Pitts network that implements the <blog-math>\text{AND}</blog-math> function.
+        Neuron <blog-math>3</blog-math> fires only when both of its excitatory inputs (filled synapses)
+        push it past its threshold <blog-math>\theta = 1.5</blog-math>. Click the input neurons to toggle them.
+    </figcaption>
 </blog-figure>
 
 <p>
@@ -554,54 +659,59 @@
 </p>
 
 <p>
-    At this point, it is in our interest to briefly go over the mathematical details of their theory.
-    Their formalization will serve as a useful introduction to model neural networks and we will see how theorists have since extended it.
-    The original presentation used by McCulloch and Pitts is rather antiquated and so I will instead adopt a more modern notation.
+    At this point, it is in our interest to look at their model in more detail, as it will serve as a useful introduction to other neural networks models and will allow us to see how theorists have greatly extended it.
+    I have left a full overview of their formalization in the appendix for the curious reader <blog-appendix-ref key='mp-net'></blog-appendix-ref>.
 </p>
-
-<div class="callout">
-<strong>McCulloch Pitts Networks</strong>
-<br>
-  <ul>
-    <li>
-        A McCulloch Pitts network of size <blog-math>n</blog-math> consists of <blog-math>n</blog-math> neurons, denoted <blog-math>x_1, x_2, \dots, x_n</blog-math>.
-        We use <blog-math>i</blog-math> as an indexing variable to reference a single neuron in our network <blog-math>x_i</blog-math>.
-    </li>
-    <li>
-        In the network, there is some notion of time which is discrete.
-        We imagine that there are timepoints <blog-math>t</blog-math>, and that the dynamics of the network unfold across timepoints discretely, <blog-math>t, t+1, t+2, \dots</blog-math>.
-    </li>
-    <li>
-        Each neuron is associated with a set of synaptic weights which quantify the size of its effect on every other neuron.
-        The synaptic weight also tells us if that neuron is excitatory or inhibitory.
-        We use the magnitude of the weight to quantify its strength, and its sign to indicate whether it is excitatory or inhibitory.
-        The synapse between <blog-math>x_1</blog-math> and <blog-math>x_2</blog-math> is denoted <blog-math>w_{1,2}</blog-math>.
-        For example, we can read the equation <blog-math>w_{1, 2}=-1</blog-math> as, <em>"Neuron <blog-math>1</blog-math> has an inhibitory synapse with neuron <blog-math>2</blog-math> with magnitude <blog-math>1</blog-math>"</em>.
-    </li>
-    <li>
-        At each timepoint, a neuron can be in one of two states: firing or not firing.
-        If a neuron fires at a particular timepoint <blog-math>t</blog-math>, we say that it outputs a <blog-math>1</blog-math>, and if it does not fire we say that it outputs a <blog-math>0</blog-math>.
-        For example, we can read the equation <blog-math>x_i(t) = 1</blog-math> as saying, <em>"The neuron <blog-math>x</blog-math> fires at time <blog-math>t</blog-math>"</em>
-    </li>
-    <li>
-        Additionally, each neuron is associated with a threshold <blog-math>\theta_i</blog-math>.
-    </li>
-    <li>
-        For a particular neuron <blog-math>x_i</blog-math> at some time step <blog-math>t</blog-math>, we determine if it will fire by taking the activity of every other neuron <blog-math>x_j, j\neq i</blog-math> at timepoint <blog-math>t - 1</blog-math> and multiplying it by its synaptic weight with <blog-math>x_i</blog-math>.
-        If the sum of these products is greater than the threshold <blog-math>\theta_i</blog-math> then <blog-math>x_i(t) = 1</blog-math>
-        If they are not greater than <blog-math>x_i(t) = 0</blog-math>. We can express this mathematically using the Heaviside function <blog-math>H</blog-math> <blog-appendix-ref key="heaviside"></blog-appendix-ref> which is <blog-math>0</blog-math> for inputs less than <blog-math>0</blog-math> and <blog-math>1</blog-math> for inputs greater than <blog-math>0</blog-math>
-        <blog-math block>
-            x_i(t) = H\Biggl(\sum_{\substack{j=1 \\ j\neq i}}^n x_j(t - 1)w_{j, i} - \theta_i\Biggr)
-        </blog-math>
-        n words, the above equation says, <em>"A neuron fires at a particular timepoint if the sum of its inputs activity on the previous timepoint is greater than its threshold."</em>
-    </li>
-  </ul>
-</div>
+<p>
+    A McCulloch Pitts (MP) network consists of a set of binary neurons: at each moment a neuron is either firing (outputting a <blog-math>1</blog-math>) or not (outputting a <blog-math>0</blog-math>). Time is discrete; at each timestep, every neuron integrates its inputs and either enters the firing state on the next timestep or remains off.
+</p>
 
 <p>
-    At this point it's worth seeing a slightly more complicated example: the exclusive-or <blog-math>(\text{XOR})</blog-math> function.
-    The <blog-math>\text{XOR}</blog-math> function takes in two binary inputs (can be either <blog-math>0</blog-math> or <blog-math>1</blog-math>) and itself outputs a <blog-math>1</blog-math> if one or the other inputs is <blog-math>1</blog-math>, but <strong><em>NOT</em></strong> both.
+    How do neurons decide to fire? Neurons are connected by synaptic weights, which scale each input: a positive weight excites the target neuron, while a negative weight suppresses it. If the excitatory inputs overwhelm the inhibitory ones, surpassing the neuron's threshold, it fires on the next timestep.
 </p>
+
+<p>
+    Let's illustrate with an example. Say we want to implement the <blog-math>\text{AND}</blog-math> function like the diagram above. We want neuron <blog-math>3</blog-math> to fire if and only if both neurons <blog-math>1</blog-math> and <blog-math>2</blog-math> were firing in the preceding timestep. We can express this general circuit with the following equation
+    <blog-math block>
+        x_3(t+1) = 
+        \begin{cases}
+            1 & \text{if } w_{1,3}x_1(t) + w_{2,3}x_2(t) > \theta_3 \\
+            0 & \text{otherwise}
+        \end{cases}
+    </blog-math>
+    Neuron <blog-math>3</blog-math> fires whenever its weighted inputs from the previous timestep exceed its threshold <blog-math>\theta_3</blog-math>. If we set <blog-math>w_{1,3} = w_{2, 3} = 1</blog-math> and <blog-math>\theta_3 = 1.5</blog-math>, then neuron <blog-math>3</blog-math> fires only when both inputs are active — the <blog-math>\text{AND}</blog-math> function.
+</p>
+
+<p>
+    Let's look at a slightly more complicated example: the exclusive-or <blog-math>(\text{XOR})</blog-math> function.
+    <blog-math>\text{XOR}</blog-math> takes two binary inputs and outputs a <blog-math>1</blog-math> if one or the other input is <blog-math>1</blog-math>, but <strong><em>not</em></strong> both.
+</p>
+
+<p>
+    Try as you might, no single MP neuron can compute this.
+    A single neuron sums its weighted inputs and checks whether the result exceeds a threshold; if its sensitive to a single input excitatory input, there is <em>no way</em> it can be insensitive to two excitatory inputs.
+    For <blog-math>\text{AND}</blog-math> this was fine, we just needed a threshold high enough that only two active inputs could cross it.
+    But <blog-math>\text{XOR}</blog-math> requires the neuron to fire when exactly one input is active and stay silent when both are or neither is.
+    No single threshold can separate those cases.
+</p>
+
+<p>
+    The solution is to use a network with intermediate neurons.
+    Notice that <blog-math>\text{XOR}</blog-math> can be decomposed into operations we already know how to implement: at least one input must be active (<blog-math>\text{OR}</blog-math>), but not both (<blog-math>\text{NOT\;AND}</blog-math>).
+    So we wire up an intermediate neuron to compute <blog-math>\text{OR}</blog-math>, another to compute <blog-math>\text{AND}</blog-math>, and feed both into an output neuron that fires when the first is active but the second is not.
+    The result is a small network that computes <blog-math>\text{XOR}</blog-math> by composing simpler logical operations, exactly as McCulloch and Pitts envisioned.
+</p>
+
+<blog-figure>
+    <blog-mp-net type="xor"></blog-mp-net>
+    <figcaption>
+        <blog-math>\text{XOR}</blog-math> built from three neurons. The <blog-math>\text{OR}</blog-math> unit
+        (<blog-math>\theta = 0.5</blog-math>) fires when either input is active; the <blog-math>\text{AND}</blog-math> unit
+        (<blog-math>\theta = 1.5</blog-math>) fires only when both are. They feed the output neuron, where the hollow
+        synapse is <em>inhibitory</em> &mdash; so when both inputs are on, the <blog-math>\text{AND}</blog-math> unit
+        vetoes the output and it stays silent. Toggle the inputs to walk the truth table.
+    </figcaption>
+</blog-figure>
 
 <p>
     There are a few details I have left out of my explanation of the McCulloch Pitts model.
@@ -634,8 +744,7 @@
 
 <p>
     In 1958, 15 years after McCulloch and Pitts published their massively influential paper, the psychologist Frank Rosenblatt introduced the perceptron, a learning algorithm for a class of networks closely related to McCulloch Pitts neurons<blog-cite key="rosenblatt1958"></blog-cite>.
-    Rosenblatt's key insight was that if a network makes an error (if it produces the wrong output for a given input), we can adjust its weights slightly in the directino that would hav eproduce the correct answer.
-    By repeating this process over many examples, the network gradually improves, eventually convering on a set of weights that give the correct answer.
+    Rosenblatt
 </p>
 
 <blog-figure>
@@ -653,11 +762,24 @@
     Computation Through Dynamics
 </h3>
 <p>
-    ring attractor, fly circuit, revisit
+    Hopfield network, ring attractor, fly circuit, revisit
     RNNs
     Bigger principles about dynamical motifs.
     lots of papers to consider
 </p>
+
+<blog-figure>
+<blog-hopfield src="/assets/hopfield-patterns.json"></blog-hopfield>
+<figcaption>
+    A continuous Hopfield network of <blog-math>64 \times 64 = 4096</blog-math> neurons holding three memories.
+    Each neuron's membrane potential <blog-math>u_i</blog-math> follows
+    <blog-math>\tau \dot{u}_i = -u_i + \sum_j W_{ij} V_j</blog-math> with firing rate <blog-math>V_i = \tanh(u_i / u_0)</blog-math>,
+    and the weights <blog-math>W_{ij}</blog-math> are set by Hebb's rule from the three stored images.
+    Corrupt the image, then press <em>Run</em>: the network falls down its energy landscape into the nearest stored memory.
+    The recollection <em>is</em> the trajectory.
+    Silhouettes from <a href="https://www.phylopic.org">PhyloPic</a> (CC0).
+</figcaption>
+</blog-figure>
 
 <h1>
     Some loose ends
@@ -805,6 +927,49 @@ def is_palindrome(sequence):
 <blog-math>F \subseteq Q</blog-math> is the set of final states or accepting states.<br>
 <blog-math>\delta : (Q \setminus F) \rightarrow Q \times \Gamma \times \{L, R\}</blog-math> is the transition function</p>
 </blog-appendix-item>
+
+<blog-appendix-item key="mp-net", title="McCulloch Pitts Network Formalization">
+<div class="callout">
+The original presentation used by McCulloch and Pitts is rather antiquated and so I will instead adopt a more modern notation.
+<br>
+  <ul>
+    <li>
+        A McCulloch Pitts network of size <blog-math>n</blog-math> consists of <blog-math>n</blog-math> neurons, denoted <blog-math>x_1, x_2, \dots, x_n</blog-math>.
+        We use <blog-math>i</blog-math> as an indexing variable to reference a single neuron in our network <blog-math>x_i</blog-math>.
+    </li>
+    <li>
+        In the network, there is some notion of time which is discrete.
+        We imagine that there are timepoints <blog-math>t</blog-math>, and that the dynamics of the network unfold across timepoints discretely, <blog-math>t, t+1, t+2, \dots</blog-math>.
+    </li>
+    <li>
+        Each neuron is associated with a set of synaptic weights which quantify the size of its effect on every other neuron.
+        The synaptic weight also tells us if that neuron is excitatory or inhibitory.
+        We use the magnitude of the weight to quantify its strength, and its sign to indicate whether it is excitatory or inhibitory.
+        The synapse between <blog-math>x_1</blog-math> and <blog-math>x_2</blog-math> is denoted <blog-math>w_{1,2}</blog-math>.
+        For example, we can read the equation <blog-math>w_{1, 2}=-1</blog-math> as, <em>"Neuron <blog-math>1</blog-math> has an inhibitory synapse with neuron <blog-math>2</blog-math> with magnitude <blog-math>1</blog-math>"</em>.
+    </li>
+    <li>
+        At each timepoint, a neuron can be in one of two states: firing or not firing.
+        If a neuron fires at a particular timepoint <blog-math>t</blog-math>, we say that it outputs a <blog-math>1</blog-math>, and if it does not fire we say that it outputs a <blog-math>0</blog-math>.
+        For example, we can read the equation <blog-math>x_i(t) = 1</blog-math> as saying, <em>"The neuron <blog-math>x</blog-math> fires at time <blog-math>t</blog-math>"</em>
+    </li>
+    <li>
+        Additionally, each neuron is associated with a threshold <blog-math>\theta_i</blog-math>.
+    </li>
+    <li>
+        For a particular neuron <blog-math>x_i</blog-math> at some time step <blog-math>t</blog-math>, we determine if it will fire by taking the activity of every other neuron <blog-math>x_j, j\neq i</blog-math> at timepoint <blog-math>t - 1</blog-math> and multiplying it by its synaptic weight with <blog-math>x_i</blog-math>.
+        If the sum of these products is greater than the threshold <blog-math>\theta_i</blog-math> then <blog-math>x_i(t) = 1</blog-math>
+        If they are not greater than <blog-math>x_i(t) = 0</blog-math>. We can express this mathematically using the Heaviside function <blog-math>H</blog-math> <blog-appendix-ref key="heaviside"></blog-appendix-ref> which is <blog-math>0</blog-math> for inputs less than <blog-math>0</blog-math> and <blog-math>1</blog-math> for inputs greater than <blog-math>0</blog-math>
+        <blog-math block>
+            x_i(t) = H\Biggl(\sum_{\substack{j=1 \\ j\neq i}}^n x_j(t - 1)w_{j, i} - \theta_i\Biggr)
+        </blog-math>
+        n words, the above equation says, <em>"A neuron fires at a particular timepoint if the sum of its inputs activity on the previous timepoint is greater than its threshold."</em>
+    </li>
+  </ul>
+</div>
+
+</blog-appendix-item>
+
 
 <blog-appendix-item key="heaviside" title="Heaviside Function">
 <p>The Heaviside function, named after the British mathematician Oliver Heaviside, is the following</p>

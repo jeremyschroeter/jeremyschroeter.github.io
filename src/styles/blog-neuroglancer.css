@@ -1,0 +1,142 @@
+/**
+ * <blog-neuroglancer> Styles
+ */
+
+blog-neuroglancer {
+  --ng-accent: #2f6fb3;
+  --ng-line: rgba(0, 0, 0, 0.22);
+  display: block;
+  margin: 2em 0;
+}
+
+.ng {
+  position: relative;
+  border: 1px solid var(--blog-rule-light);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fdfdfd;
+}
+
+/* ------------------------------------------------------------------ poster */
+
+.ng-poster {
+  height: var(--ng-height, 480px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A faint dotted field, so the empty state reads as "3D scene", not "broken". */
+  background:
+    radial-gradient(circle at center, rgba(47, 111, 179, 0.05), transparent 70%),
+    repeating-radial-gradient(circle at center, transparent 0 11px, rgba(0, 0, 0, 0.03) 11px 12px);
+  text-align: center;
+}
+
+.ng-poster-body {
+  max-width: 380px;
+  padding: 24px;
+}
+
+.ng-glyph {
+  width: 52px;
+  height: 52px;
+  color: var(--ng-accent);
+  opacity: 0.85;
+  margin-bottom: 14px;
+}
+
+.ng-title {
+  margin: 0 0 6px;
+  font-family: var(--blog-font-body);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--blog-text);
+}
+
+.ng-sub {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5em;
+  color: var(--blog-text-muted);
+}
+
+.ng-load {
+  padding: 8px 20px;
+  border: 1px solid var(--ng-accent);
+  border-radius: 4px;
+  background: var(--ng-accent);
+  color: #fff;
+  font-family: var(--blog-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ng-load:hover {
+  background: #285d97;
+}
+
+.ng-note {
+  margin: 14px 0 0;
+  font-size: 11px;
+  line-height: 1.5em;
+  color: var(--blog-text-muted);
+}
+
+.ng-note a,
+.ng-bar a {
+  color: var(--ng-accent);
+  text-decoration: underline;
+}
+
+.ng-error {
+  padding: 40px;
+  text-align: center;
+  font-size: 13px;
+  color: #b3392f;
+}
+
+/* ------------------------------------------------------------------- frame */
+
+.ng-frame {
+  display: block;
+  width: 100%;
+  height: var(--ng-height, 480px);
+  border: 0;
+  background: #000;
+}
+
+.ng-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--blog-rule-light);
+  background: #fff;
+  font-size: 12px;
+}
+
+.ng-bar a {
+  font-family: var(--blog-font-body);
+}
+
+.ng-close {
+  padding: 3px 12px;
+  border: 1px solid var(--ng-line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--blog-text);
+  font-family: var(--blog-font-body);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ng-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media screen and (max-width: 700px) {
+  .ng-poster-body {
+    padding: 18px;
+  }
+}

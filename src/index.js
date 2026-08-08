@@ -17,6 +17,11 @@ import './components/blog-appendix-item.js';
 import './components/blog-appendix-ref.js';
 import './components/blog-appendix.js';
 import './components/blog-post-list.js';
+import './components/blog-turing-machine.js';
+import './components/blog-hopfield.js';
+import './components/blog-neuroglancer.js';
+import './components/blog-mp-net.js';
+import './components/blog-longmult.js';
 
 // Import styles
 import './styles/base.css';
@@ -27,6 +32,11 @@ import './styles/blog-cite.css';
 import './styles/blog-math.css';
 import './styles/blog-appendix.css';
 import './styles/blog-post-list.css';
+import './styles/blog-turing-machine.css';
+import './styles/blog-hopfield.css';
+import './styles/blog-neuroglancer.css';
+import './styles/blog-mp-net.css';
+import './styles/blog-longmult.css';
 
 const VERSION = '1.0.0';
 

@@ -1,0 +1,291 @@
+/**
+ * <blog-longmult> Styles
+ */
+
+blog-longmult {
+  --lm-accent: #2f6fb3;
+  --lm-done: #2e7d4f;
+  --lm-line: rgba(0, 0, 0, 0.28);
+  --lm-idle: rgba(0, 0, 0, 0.22);
+
+  display: block;
+  margin: 2em 0;
+}
+
+.lm {
+  border: 1px solid var(--blog-rule-light);
+  border-radius: 6px;
+  background: #fdfdfd;
+  padding: 18px 16px 14px;
+  font-family: var(--blog-font-body);
+}
+
+.lm-main {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.lm-diagram {
+  flex: 1 1 60%;
+  min-width: 0;
+}
+
+.lm-diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.lm-side {
+  flex: 1 1 40%;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------- nodes */
+
+.lm-node rect {
+  fill: #fff;
+  stroke: var(--lm-idle);
+  stroke-width: 1.5;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.lm-decision rect {
+  fill: #f6f6f6;
+}
+
+.lm-node text {
+  fill: var(--blog-text);
+  font-family: var(--blog-font-body);
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  transition: fill 0.15s ease;
+}
+
+.lm-node.is-current rect {
+  fill: rgba(47, 111, 179, 0.13);
+  stroke: var(--lm-accent);
+  stroke-width: 2.4;
+}
+
+.lm-node.is-current text {
+  fill: var(--lm-accent);
+  font-weight: 700;
+}
+
+.lm-node.is-done rect {
+  fill: rgba(46, 125, 79, 0.13);
+  stroke: var(--lm-done);
+  stroke-width: 2.4;
+}
+
+.lm-node.is-done text {
+  fill: var(--lm-done);
+  font-weight: 700;
+}
+
+.lm-terminal {
+  fill: #fff;
+  stroke: var(--lm-idle);
+  stroke-width: 2;
+}
+
+/* ------------------------------------------------------------------- edges */
+
+.lm-edge {
+  fill: none;
+  stroke: var(--lm-line);
+  stroke-width: 1.5;
+}
+
+.lm-diagram marker path {
+  fill: var(--lm-line);
+}
+
+.lm-edge-label {
+  fill: var(--blog-text-muted);
+  font-family: var(--blog-font-code);
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* --------------------------------------------------------------- worktable */
+
+.lm-work {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+  border: 1px solid var(--blog-rule-light);
+  border-radius: 4px;
+  background: #fff;
+  font-family: var(--blog-font-code);
+}
+
+.lm-drow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lm-cell {
+  width: 22px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--blog-text);
+}
+
+.lm-cell.lm-op {
+  color: var(--blog-text-muted);
+}
+
+.lm-cell.is-hi {
+  color: var(--lm-accent);
+  font-weight: 700;
+  background: rgba(47, 111, 179, 0.12);
+  border-radius: 3px;
+}
+
+.lm-rule {
+  height: 2px;
+  align-self: flex-end;
+  width: 100%;
+  max-width: 220px;
+  background: var(--lm-line);
+  margin: 3px 0;
+}
+
+.lm-committed .lm-cell {
+  color: var(--blog-text-semi);
+}
+
+.lm-building .lm-cell {
+  color: var(--lm-accent);
+  font-weight: 600;
+}
+
+.lm-answer .lm-cell {
+  color: var(--lm-done);
+  font-weight: 700;
+}
+
+.lm-scratch {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--blog-rule-light);
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+}
+
+.lm-mono {
+  color: var(--lm-accent);
+  font-weight: 600;
+}
+
+.lm-shift {
+  font-size: 11px;
+  color: var(--blog-text-muted);
+}
+
+/* ------------------------------------------------------------------- note */
+
+.lm-note {
+  min-height: 2.6em;
+  margin: 10px 4px 0;
+  font-size: 12.5px;
+  line-height: 1.4em;
+  color: var(--blog-text-muted);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------- bar + controls */
+
+.lm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--blog-rule-light);
+}
+
+.lm-factors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--blog-font-code);
+  font-size: 18px;
+  color: var(--blog-text-muted);
+}
+
+.lm-in {
+  width: 66px;
+  padding: 5px 8px;
+  border: 1px solid var(--lm-idle);
+  border-radius: 4px;
+  background: #fff;
+  font-family: var(--blog-font-code);
+  font-size: 16px;
+  text-align: center;
+  color: var(--blog-text);
+}
+
+.lm-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.lm-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--lm-idle);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--blog-text);
+  font-family: var(--blog-font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.lm-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.lm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lm-btn-primary:not(:disabled) {
+  border-color: var(--lm-accent);
+  color: var(--lm-accent);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ mobile */
+
+@media screen and (max-width: 640px) {
+  .lm-main {
+    flex-direction: column;
+  }
+
+  .lm-side {
+    width: 100%;
+  }
+}
