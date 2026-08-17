@@ -43,3 +43,34 @@ blog-figure.outset {
     margin-right: 0;
   }
 }
+
+/* Full-bleed variant: image breaks out of the text column to span (nearly)
+   the whole viewport. Relies on .wrap being horizontally centered, so
+   50% - 50vw lands on the viewport edge regardless of the column width or
+   the body's mobile margin.
+   Tune --fullbleed-gutter to taste: 0 is true edge-to-edge. */
+blog-figure.fullbleed {
+  --fullbleed-gutter: 40px;
+  width: calc(100vw - 2 * var(--fullbleed-gutter));
+  max-width: calc(100vw - 2 * var(--fullbleed-gutter));
+  margin-left: calc(50% - 50vw + var(--fullbleed-gutter));
+  margin-right: calc(50% - 50vw + var(--fullbleed-gutter));
+  padding: 0;
+  border-top: 0;
+  border-bottom: 0;
+}
+
+/* On phones the body's own 7px margin is already the gutter */
+@media screen and (max-width: 700px) {
+  blog-figure.fullbleed {
+    --fullbleed-gutter: 0px;
+  }
+}
+
+/* Caption stays in the text column rather than running the full width */
+blog-figure.fullbleed figcaption {
+  box-sizing: border-box;
+  max-width: var(--blog-max-width);
+  margin: 0 auto;
+  padding: 15px 7px 0;
+}

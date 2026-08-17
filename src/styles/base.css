@@ -30,6 +30,11 @@ html {
 body {
   margin: 0;
   background: var(--blog-bg);
+  /* 100vw includes the scrollbar, so full-bleed figures would otherwise
+     trigger a horizontal scrollbar on platforms with classic scrollbars.
+     `clip` suppresses it without creating a scroll container (unlike
+     `hidden`, which would break position: sticky). */
+  overflow-x: clip;
 }
 
 body .content {
